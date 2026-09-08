@@ -1,0 +1,1448 @@
+  <<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🦷 口腔专业系统 · 可拖拽排序</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* ===== 全局样式 ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; height: 100vh; display: flex; color: #0f172a; }
+
+        .sidebar {
+            width: 260px; background: #ffffff; border-right: 1px solid #e2e8f0;
+            padding: 24px 16px; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
+        }
+        .sidebar .logo {
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 2px;
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+        }
+        .sidebar .logo:hover { opacity: 0.7; }
+        .sidebar .logo .edit-icon { font-size: 0.8rem; color: #94a3b8; }
+        .sidebar .sub { font-size: 0.8rem; color: #64748b; margin-bottom: 24px; }
+
+        .stat-box {
+            background: #f8fafc; border-radius: 12px; padding: 14px; margin-bottom: 20px;
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;
+        }
+        .stat-box div { text-align: center; }
+        .stat-box .num { font-weight: 700; font-size: 1.2rem; color: #0f172a; }
+        .stat-box .label { font-size: 0.6rem; color: #64748b; text-transform: uppercase; }
+
+        .sidebar .category-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin: 16px 0 8px 0;
+        }
+        .sidebar .category-header h4 { font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; margin: 0; }
+        .sidebar .category-header .add-cat-btn {
+            background: none; border: 1px solid #e2e8f0; border-radius: 40px;
+            padding: 0 10px; font-size: 0.8rem; cursor: pointer; color: #3b82f6;
+            transition: 0.15s; line-height: 1.8;
+        }
+        .sidebar .category-header .add-cat-btn:hover { background: #eff6ff; border-color: #3b82f6; }
+
+        .category-list {
+            list-style: none; margin-bottom: 12px;
+            min-height: 40px; /* 拖拽区域 */
+        }
+        .category-list li {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 10px; border-radius: 8px; cursor: grab;
+            font-size: 0.9rem; transition: 0.15s; user-select: none;
+            border: 1px solid transparent;
+        }
+        .category-list li:active { cursor: grabbing; }
+        .category-list li.dragging { opacity: 0.5; border: 1px dashed #3b82f6; }
+        .category-list li.drag-over { border-color: #3b82f6; background: #dbeafe; }
+        .category-list li:hover { background: #f1f5f9; }
+        .category-list li.active { background: #dbeafe; color: #1d4ed8; font-weight: 600; }
+        .category-list li .count { color: #94a3b8; font-weight: 400; font-size: 0.8rem; }
+        .category-list li .action-btns {
+            display: flex; gap: 4px; align-items: center;
+        }
+        .category-list li .action-btns button {
+            background: none; border: none; font-size: 0.9rem; cursor: pointer;
+            padding: 0 4px; transition: 0.15s; color: #94a3b8;
+            line-height: 1;
+        }
+        .category-list li .action-btns button:hover { color: #3b82f6; transform: scale(1.2); }
+        .category-list li .action-btns .case-btn:hover { color: #8b5cf6; }
+
+        .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+        .tag-cloud .tag-item {
+            background: #eef2ff; color: #4338ca; padding: 2px 12px; border-radius: 20px;
+            font-size: 0.75rem; cursor: pointer; transition: 0.15s; border: 1px solid transparent;
+        }
+        .tag-cloud .tag-item:hover { background: #c7d2fe; }
+        .tag-cloud .tag-item.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+
+        .sidebar .backup-area {
+            margin-top: auto; padding-top: 16px; border-top: 1px solid #e2e8f0;
+            display: flex; gap: 8px; flex-wrap: wrap;
+        }
+        .sidebar .backup-area button {
+            flex: 1; padding: 6px 0; background: white; border: 1px solid #e2e8f0;
+            border-radius: 8px; font-size: 0.75rem; cursor: pointer; transition: 0.15s;
+        }
+        .sidebar .backup-area button:hover { background: #f1f5f9; border-color: #94a3b8; }
+        #fileInput { display: none; }
+
+        /* 主区域 */
+        .main {
+            flex: 1; padding: 24px 32px; overflow-y: auto; display: flex; flex-direction: column;
+        }
+
+        /* 分类详情视图头部 */
+        .category-detail-header {
+            display: flex; flex-direction: column; gap: 12px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 16px;
+        }
+        .category-detail-header .top-row {
+            display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+        }
+        .category-detail-header .top-row .back-btn {
+            background: none; border: 1px solid #e2e8f0; border-radius: 40px;
+            padding: 4px 16px; cursor: pointer; font-size: 0.9rem;
+            transition: 0.15s;
+        }
+        .category-detail-header .top-row .back-btn:hover { background: #f1f5f9; }
+        .category-detail-header .top-row .cat-title {
+            font-size: 1.5rem; font-weight: 700; color: #0f172a;
+        }
+        .category-detail-header .top-row .cat-count {
+            color: #64748b; font-size: 0.9rem;
+        }
+        .category-detail-header .sub-tabs {
+            display: flex; gap: 8px;
+        }
+        .category-detail-header .sub-tabs .tab-btn {
+            padding: 6px 20px; border-radius: 40px; border: 1px solid #e2e8f0;
+            background: white; cursor: pointer; font-weight: 500; transition: 0.15s;
+        }
+        .category-detail-header .sub-tabs .tab-btn.active {
+            background: #3b82f6; color: white; border-color: #3b82f6;
+        }
+        .category-detail-header .sub-tabs .tab-btn:hover:not(.active) { background: #f1f5f9; }
+
+        .top-bar {
+            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; gap: 12px;
+        }
+        .top-bar .search-wrap {
+            flex: 1; min-width: 200px; position: relative;
+        }
+        .top-bar .search-wrap input {
+            width: 100%; padding: 10px 16px 10px 40px; border: 1px solid #e2e8f0;
+            border-radius: 40px; font-size: 0.95rem; background: white; transition: 0.2s;
+        }
+        .top-bar .search-wrap input:focus {
+            outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+        .top-bar .search-wrap .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+        .btn-primary {
+            background: #3b82f6; color: white; border: none; padding: 10px 24px;
+            border-radius: 40px; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+            transition: 0.2s; white-space: nowrap;
+        }
+        .btn-primary:hover { background: #2563eb; box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+        .btn-case {
+            background: #8b5cf6; color: white; border: none; padding: 10px 24px;
+            border-radius: 40px; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+            transition: 0.2s; white-space: nowrap;
+        }
+        .btn-case:hover { background: #7c3aed; box-shadow: 0 4px 12px rgba(139,92,246,0.3); }
+
+        .grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px; flex: 1;
+            min-height: 200px; /* 确保拖拽区域可放置 */
+        }
+        .grid.drag-over { background: #f8fafc; border-radius: 16px; padding: 10px; }
+
+        .card {
+            background: white; border-radius: 16px; padding: 18px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;
+            transition: 0.2s; cursor: grab; display: flex; flex-direction: column;
+            user-select: none;
+        }
+        .card:active { cursor: grabbing; }
+        .card.dragging { opacity: 0.4; border: 1px dashed #3b82f6; }
+        .card.drag-over { border-color: #3b82f6; background: #f0f9ff; }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.08); border-color: #b9d0f0; }
+        .card .card-type {
+            font-size: 0.65rem; font-weight: 700; padding: 2px 10px; border-radius: 40px;
+            align-self: flex-start; margin-bottom: 6px;
+        }
+        .card .card-type.knowledge { background: #dbeafe; color: #1d4ed8; }
+        .card .card-type.case { background: #ede9fe; color: #7c3aed; }
+        .card .card-cat {
+            font-size: 0.7rem; font-weight: 600; color: #3b82f6; background: #eff6ff;
+            padding: 2px 12px; border-radius: 40px; display: inline-block; align-self: flex-start; margin-bottom: 6px;
+        }
+        .card h3 { font-size: 1.1rem; margin-bottom: 6px; }
+        .card .card-summary {
+            color: #475569; font-size: 0.9rem; line-height: 1.5; flex: 1;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .card .card-tags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 4px; }
+        .card .card-tags span { background: #f1f5f9; color: #334155; font-size: 0.65rem; padding: 2px 10px; border-radius: 40px; }
+        .card .card-footer {
+            margin-top: 12px; font-size: 0.7rem; color: #94a3b8; border-top: 1px solid #f1f5f9;
+            padding-top: 10px; display: flex; justify-content: space-between;
+        }
+        .card .card-footer .img-indicator { color: #3b82f6; }
+        .no-result { grid-column: 1 / -1; text-align: center; padding: 80px 20px; color: #94a3b8; }
+
+        /* 模态框（与之前一致，省略部分样式，但保留） */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.4); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 999; padding: 20px; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: white; max-width: 800px; width: 100%; border-radius: 24px; padding: 32px; max-height: 92vh; overflow-y: auto; box-shadow: 0 30px 60px rgba(0,0,0,0.2); }
+        .modal h2 { margin-bottom: 20px; }
+        .modal label { display: block; font-weight: 600; font-size: 0.85rem; margin-top: 16px; margin-bottom: 4px; }
+        .modal input, .modal textarea { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 0.95rem; font-family: inherit; }
+        .modal input:focus, .modal textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        .modal textarea { min-height: 60px; resize: vertical; }
+        .modal .image-upload-area { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; align-items: center; }
+        .modal .image-upload-area .preview-img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .modal .image-upload-area .file-input-label { background: #f1f5f9; padding: 6px 16px; border-radius: 30px; font-size: 0.8rem; cursor: pointer; transition: 0.15s; }
+        .modal .image-upload-area .file-input-label:hover { background: #e2e8f0; }
+        .modal .image-upload-area input[type="file"] { display: none; }
+        .modal .extra-fields-area { margin-top: 12px; padding: 12px; background: #f8fafc; border-radius: 12px; }
+        .modal .extra-fields-area .extra-item { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
+        .modal .extra-fields-area .extra-item input { flex: 1; padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; }
+        .modal .extra-fields-area .extra-item .remove-extra { background: none; border: none; color: #ef4444; font-weight: 700; cursor: pointer; }
+        .modal .btn-group { display: flex; gap: 12px; justify-content: flex-end; margin-top: 28px; }
+        .modal .btn-group button { padding: 10px 28px; border-radius: 40px; border: none; font-weight: 600; cursor: pointer; }
+        .modal .btn-cancel { background: #e2e8f0; color: #334155; }
+        .modal .btn-cancel:hover { background: #cbd5e1; }
+        .modal .btn-save { background: #3b82f6; color: white; }
+        .modal .btn-save:hover { background: #2563eb; }
+
+        .detail-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 1000; padding: 30px; }
+        .detail-overlay.show { display: flex; }
+        .detail-box { background: white; max-width: 800px; width: 100%; border-radius: 24px; padding: 32px; max-height: 90vh; overflow-y: auto; box-shadow: 0 30px 60px rgba(0,0,0,0.3); }
+        .detail-box .close-detail { float: right; background: none; border: none; font-size: 1.8rem; cursor: pointer; color: #94a3b8; }
+        .detail-box .close-detail:hover { color: #0f172a; }
+        .detail-box .detail-type { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 14px; border-radius: 40px; margin-bottom: 8px; }
+        .detail-box .detail-type.knowledge { background: #dbeafe; color: #1d4ed8; }
+        .detail-box .detail-type.case { background: #ede9fe; color: #7c3aed; }
+        .detail-box .detail-cat { color: #3b82f6; font-weight: 600; font-size: 0.8rem; }
+        .detail-box h2 { margin: 6px 0 12px 0; }
+        .detail-box .detail-body { margin-top: 12px; line-height: 1.8; color: #1e293b; white-space: pre-wrap; }
+        .detail-box .detail-body img { max-width: 100%; border-radius: 12px; margin: 10px 0; border: 1px solid #e2e8f0; }
+        .detail-box .detail-case-module { margin-top: 16px; padding: 12px; background: #f8fafc; border-radius: 12px; }
+        .detail-box .detail-case-module .module-label { font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+        .detail-box .detail-case-module .module-content { white-space: pre-wrap; font-size: 0.95rem; }
+        .detail-box .detail-extra { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .detail-box .detail-extra .extra-item { background: #f1f5f9; padding: 8px 12px; border-radius: 8px; }
+        .detail-box .detail-extra .extra-item .extra-key { font-weight: 600; font-size: 0.8rem; color: #475569; }
+        .detail-box .detail-extra .extra-item .extra-value { font-size: 0.9rem; }
+        .detail-box .detail-tags { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+        .detail-box .detail-tags span { background: #f1f5f9; padding: 2px 14px; border-radius: 40px; font-size: 0.8rem; }
+        .detail-box .detail-delete { background: #fee2e2; color: #dc2626; border: none; padding: 8px 20px; border-radius: 40px; font-weight: 600; cursor: pointer; margin-top: 16px; }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main { padding: 16px; }
+            .top-bar { flex-direction: column; align-items: stretch; }
+            .category-detail-header .top-row { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ======= 侧边栏 ======= -->
+    <aside class="sidebar">
+        <div class="logo" id="logoTitle">🦷 <span>DentalKB</span> <span class="edit-icon">✎</span></div>
+        <div class="sub" id="subTitle">口腔知识库 + 病例</div>
+
+        <div class="stat-box">
+            <div><div class="num" id="totalCount">0</div><div class="label">总条目</div></div>
+            <div><div class="num" id="caseCount">0</div><div class="label">病例</div></div>
+            <div><div class="num" id="catCount">0</div><div class="label">分类</div></div>
+        </div>
+
+        <div class="category-header">
+            <h4>📂 分类</h4>
+            <button class="add-cat-btn" id="addCategoryBtn">＋ 新增</button>
+        </div>
+        <ul class="category-list" id="categoryList">
+            <li data-cat="all" class="active">全部 <span class="count" id="allCount">0</span></li>
+        </ul>
+
+        <h4>🏷️ 热门标签</h4>
+        <div class="tag-cloud" id="tagCloud"></div>
+
+        <div class="backup-area">
+            <button id="exportBtn">📤 导出备份</button>
+            <button id="importBtn">📥 导入备份</button>
+            <input type="file" id="fileInput" accept=".json" />
+        </div>
+    </aside>
+
+    <!-- ======= 主区域 ======= -->
+    <main class="main" id="mainContent">
+        <div id="viewContainer"></div>
+    </main>
+
+    <!-- ======= 模态框（知识点、病例、分类、详情） ======= -->
+    <!-- 知识点模态框 -->
+    <div class="modal-overlay" id="formModal">
+        <div class="modal">
+            <h2 id="formTitle">📝 新增知识点</h2>
+            <label>标题 *</label>
+            <input type="text" id="inputTitle" placeholder="如：可复性牙髓炎" />
+            <label>分类 *</label>
+            <input type="text" id="inputCategory" placeholder="如：牙体牙髓学" list="catSuggest" />
+            <datalist id="catSuggest"></datalist>
+            <label>标签（用英文逗号分割）</label>
+            <input type="text" id="inputTags" placeholder="标签1, 标签2" />
+            <label>摘要</label>
+            <input type="text" id="inputSummary" placeholder="一句话概括" />
+            <label>详细内容（支持 Markdown）</label>
+            <textarea id="inputDetail" rows="4" placeholder="病因：...\n治疗：..."></textarea>
+            <label>图片</label>
+            <div class="image-upload-area">
+                <label class="file-input-label">📎 选择图片</label>
+                <input type="file" id="imageFileInput" accept="image/*" multiple />
+                <div id="imagePreviewContainer" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn-cancel" id="closeFormBtn">取消</button>
+                <button class="btn-save" id="saveEntryBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 病例模态框 -->
+    <div class="modal-overlay" id="caseModal">
+        <div class="modal">
+            <h2 id="caseFormTitle">📋 新增真实病例</h2>
+            <label>标题 *</label>
+            <input type="text" id="caseTitle" placeholder="病例标题" />
+            <label>分类 *</label>
+            <input type="text" id="caseCategory" placeholder="如：牙体牙髓学" list="catSuggest2" />
+            <datalist id="catSuggest2"></datalist>
+            <label>标签（用英文逗号分割）</label>
+            <input type="text" id="caseTags" placeholder="典型病例, 根管治疗" />
+            <label>① 主诉呈现</label>
+            <textarea id="caseChiefComplaint" rows="2" placeholder="患者主诉"></textarea>
+            <label>② 问诊发现</label>
+            <textarea id="caseInquiry" rows="3" placeholder="问诊内容"></textarea>
+            <label>③ 检查结果</label>
+            <textarea id="caseExamination" rows="3" placeholder="检查结果"></textarea>
+            <label>④ 诊断思考</label>
+            <textarea id="caseDiagnosisThinking" rows="3" placeholder="诊断思路"></textarea>
+            <label>⑤ 参考答案</label>
+            <textarea id="caseReferenceAnswer" rows="3" placeholder="参考答案"></textarea>
+            <label>⑥ 图片呈现</label>
+            <div class="image-upload-area">
+                <label class="file-input-label">📎 选择图片</label>
+                <input type="file" id="caseImageInput" accept="image/*" multiple />
+                <div id="caseImagePreview" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;"></div>
+            </div>
+            <label style="margin-top:12px;">📌 额外字段</label>
+            <div class="extra-fields-area" id="extraFieldsContainer"></div>
+            <button type="button" id="addExtraFieldBtn" style="background:#f1f5f9; border:1px dashed #94a3b8; border-radius:30px; padding:6px 16px; margin-top:6px; cursor:pointer;">➕ 添加额外字段</button>
+            <div class="btn-group">
+                <button class="btn-cancel" id="closeCaseBtn">取消</button>
+                <button class="btn-save" id="saveCaseBtn">保存病例</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增分类模态框 -->
+    <div class="modal-overlay" id="newCategoryModal">
+        <div class="modal" style="max-width:400px;">
+            <h2>📂 新增分类</h2>
+            <label>分类名称 *</label>
+            <input type="text" id="newCategoryInput" placeholder="如：口腔颌面外科" />
+            <div class="btn-group">
+                <button class="btn-cancel" id="closeNewCategoryBtn">取消</button>
+                <button class="btn-save" id="saveNewCategoryBtn">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改知识库名称模态框 -->
+    <div class="modal-overlay" id="renameModal">
+        <div class="modal" style="max-width:400px;">
+            <h2>✏️ 修改知识库名称</h2>
+            <label>新名称</label>
+            <input type="text" id="renameInput" placeholder="输入新名称" />
+            <div class="btn-group">
+                <button class="btn-cancel" id="closeRenameBtn">取消</button>
+                <button class="btn-save" id="saveRenameBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情模态框 -->
+    <div class="detail-overlay" id="detailModal">
+        <div class="detail-box">
+            <button class="close-detail" id="closeDetailBtn">&times;</button>
+            <div class="detail-type" id="detailType">知识点</div>
+            <div class="detail-cat" id="detailCategory">分类</div>
+            <h2 id="detailTitle">标题</h2>
+            <div class="detail-body" id="detailBody"></div>
+            <div id="caseModulesContainer" style="display:none;">
+                <div class="detail-case-module"><div class="module-label">① 主诉呈现</div><div class="module-content" id="detailChiefComplaint"></div></div>
+                <div class="detail-case-module"><div class="module-label">② 问诊发现</div><div class="module-content" id="detailInquiry"></div></div>
+                <div class="detail-case-module"><div class="module-label">③ 检查结果</div><div class="module-content" id="detailExamination"></div></div>
+                <div class="detail-case-module"><div class="module-label">④ 诊断思考</div><div class="module-content" id="detailDiagnosisThinking"></div></div>
+                <div class="detail-case-module"><div class="module-label">⑤ 参考答案</div><div class="module-content" id="detailReferenceAnswer"></div></div>
+                <div id="detailExtraFields" class="detail-extra"></div>
+            </div>
+            <div class="detail-tags" id="detailTags"></div>
+            <button class="detail-delete" id="detailDeleteBtn">🗑️ 删除此条目</button>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        //  1. IndexedDB 层（不变）
+        // ================================================================
+        const DB_NAME = 'DentalKB';
+        const STORE_NAME = 'entries';
+        let db = null;
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                        store.createIndex('category', 'category', { unique: false });
+                        store.createIndex('tags', 'tags', { unique: false, multiEntry: true });
+                        store.createIndex('title', 'title', { unique: false });
+                        store.createIndex('type', 'type', { unique: false });
+                    }
+                };
+                request.onsuccess = (e) => { resolve(e.target.result); };
+                request.onerror = (e) => { reject(e.target.error); };
+            });
+        }
+
+        function dbAdd(entry) { return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, 'readwrite'); const store = tx.objectStore(STORE_NAME); const req = store.add(entry); req.onsuccess = () => resolve(entry); req.onerror = () => reject(req.error); }); }
+        function dbUpdate(entry) { return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, 'readwrite'); const store = tx.objectStore(STORE_NAME); const req = store.put(entry); req.onsuccess = () => resolve(entry); req.onerror = () => reject(req.error); }); }
+        function dbDelete(id) { return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, 'readwrite'); const store = tx.objectStore(STORE_NAME); const req = store.delete(id); req.onsuccess = () => resolve(); req.onerror = () => reject(req.error); }); }
+        function dbGetAll() { return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, 'readonly'); const store = tx.objectStore(STORE_NAME); const req = store.getAll(); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); }); }
+        function dbGetById(id) { return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, 'readonly'); const store = tx.objectStore(STORE_NAME); const req = store.get(id); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); }); }
+
+        // ================================================================
+        //  2. 分类管理 + 拖拽排序
+        // ================================================================
+        const CUSTOM_CATEGORIES_KEY = 'dental_custom_categories';
+        const CATEGORY_ORDER_KEY = 'dental_category_order';
+
+        function loadCustomCategories() {
+            const stored = localStorage.getItem(CUSTOM_CATEGORIES_KEY);
+            if (stored) { try { return JSON.parse(stored); } catch(e) { return []; } }
+            return [];
+        }
+        function saveCustomCategories(cats) { localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(cats)); }
+
+        function loadCategoryOrder() {
+            const stored = localStorage.getItem(CATEGORY_ORDER_KEY);
+            if (stored) { try { return JSON.parse(stored); } catch(e) { return []; } }
+            return [];
+        }
+        function saveCategoryOrder(order) { localStorage.setItem(CATEGORY_ORDER_KEY, JSON.stringify(order)); }
+
+        function getAllCategories(entries) {
+            const fromEntries = new Set();
+            entries.forEach(e => { if (e.category) fromEntries.add(e.category); });
+            const custom = loadCustomCategories();
+            const all = new Set([...fromEntries, ...custom]);
+            return Array.from(all).sort();
+        }
+
+        // 获取排序后的分类列表（结合自定义顺序）
+        function getSortedCategories(entries) {
+            const allCats = getAllCategories(entries);
+            const order = loadCategoryOrder();
+            // 先按order排，未在order中的按字母排
+            const ordered = [];
+            const unordered = [];
+            const orderSet = new Set(order);
+            allCats.forEach(c => {
+                if (orderSet.has(c)) ordered.push(c);
+                else unordered.push(c);
+            });
+            // 按order数组的顺序排
+            const sorted = [];
+            order.forEach(c => { if (allCats.includes(c)) sorted.push(c); });
+            // 追加未排序的（按字母）
+            unordered.sort().forEach(c => sorted.push(c));
+            return sorted;
+        }
+
+        // ================================================================
+        //  3. 卡片排序管理
+        // ================================================================
+        function getCardOrderKey(viewMode, category) {
+            if (viewMode === 'all') return 'dental_card_order_all';
+            else if (viewMode === 'category') return `dental_card_order_cat_${category}`;
+            return null;
+        }
+
+        function loadCardOrder(key) {
+            const stored = localStorage.getItem(key);
+            if (stored) { try { return JSON.parse(stored); } catch(e) { return []; } }
+            return [];
+        }
+
+        function saveCardOrder(key, order) {
+            localStorage.setItem(key, JSON.stringify(order));
+        }
+
+        // 对卡片列表按保存的顺序排序
+        function sortCardsByOrder(cards, orderKey) {
+            const order = loadCardOrder(orderKey);
+            if (order.length === 0) return cards;
+            const idMap = {};
+            cards.forEach(c => { idMap[c.id] = c; });
+            const orderedCards = [];
+            // 先按order中的顺序
+            order.forEach(id => {
+                if (idMap[id]) {
+                    orderedCards.push(idMap[id]);
+                    delete idMap[id];
+                }
+            });
+            // 剩余未在order中的追加
+            Object.values(idMap).forEach(c => orderedCards.push(c));
+            return orderedCards;
+        }
+
+        // 保存当前显示的卡片顺序
+        function saveCurrentCardOrder(viewMode, category, cardElements) {
+            const key = getCardOrderKey(viewMode, category);
+            if (!key) return;
+            const ids = [];
+            cardElements.forEach(el => {
+                const id = el.dataset.id;
+                if (id) ids.push(id);
+            });
+            saveCardOrder(key, ids);
+        }
+
+        // ================================================================
+        //  4. 全局状态
+        // ================================================================
+        let allEntries = [];
+        let viewMode = 'all';
+        let currentFilterCat = 'all';
+        let subTypeFilter = 'all';
+        let currentFilterTag = null;
+        let editingId = null;
+        let tempImages = [];
+        let tempCaseImages = [];
+        let extraFields = [];
+
+        // ================================================================
+        //  5. DOM 引用
+        // ================================================================
+        const viewContainer = document.getElementById('viewContainer');
+        const categoryList = document.getElementById('categoryList');
+        const tagCloud = document.getElementById('tagCloud');
+        const totalCount = document.getElementById('totalCount');
+        const caseCount = document.getElementById('caseCount');
+        const catCount = document.getElementById('catCount');
+        const allCount = document.getElementById('allCount');
+        const logoTitle = document.getElementById('logoTitle');
+        const subTitle = document.getElementById('subTitle');
+
+        // 知识库名称管理
+        const RENAME_KEY = 'dental_kb_name';
+        function loadKbName() {
+            return localStorage.getItem(RENAME_KEY) || 'DentalKB';
+        }
+        function saveKbName(name) {
+            localStorage.setItem(RENAME_KEY, name);
+            updateKbNameDisplay();
+        }
+        function updateKbNameDisplay() {
+            const name = loadKbName();
+            logoTitle.innerHTML = `🦷 <span>${name}</span> <span class="edit-icon">✎</span>`;
+        }
+        // 点击名称弹出修改框
+        logoTitle.addEventListener('click', function() {
+            document.getElementById('renameInput').value = loadKbName();
+            document.getElementById('renameModal').classList.add('show');
+        });
+        document.getElementById('closeRenameBtn').addEventListener('click', function() {
+            document.getElementById('renameModal').classList.remove('show');
+        });
+        document.getElementById('saveRenameBtn').addEventListener('click', function() {
+            const newName = document.getElementById('renameInput').value.trim();
+            if (newName) {
+                saveKbName(newName);
+                document.getElementById('renameModal').classList.remove('show');
+            }
+        });
+        document.getElementById('renameModal').addEventListener('click', function(e) {
+            if (e.target === this) this.classList.remove('show');
+        });
+        // 初始化名称
+        updateKbNameDisplay();
+
+        // 知识点、病例表单等（与之前相同，此处省略重复DOM引用，但保留事件绑定）
+        // 为了简洁，我们在后面直接引用
+        // ...
+
+        // ================================================================
+        //  6. 渲染主函数
+        // ================================================================
+        function render() {
+            updateSidebar();
+
+            if (viewMode === 'all') {
+                renderAllView();
+            } else if (viewMode === 'category') {
+                renderCategoryView();
+            }
+        }
+
+        // 更新侧边栏（分类列表支持拖拽排序）
+        function updateSidebar() {
+            totalCount.textContent = allEntries.length;
+            const cases = allEntries.filter(e => e.type === 'case');
+            caseCount.textContent = cases.length;
+            const allCats = getAllCategories(allEntries);
+            catCount.textContent = allCats.length;
+
+            // 分类列表 - 使用排序后的顺序
+            const sortedCats = getSortedCategories(allEntries);
+            const catMap = {};
+            allEntries.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + 1; });
+            const customCats = loadCustomCategories();
+            customCats.forEach(c => { if (!(c in catMap)) catMap[c] = 0; });
+
+            let catHtml = `<li data-cat="all" class="${viewMode === 'all' && currentFilterCat === 'all' ? 'active' : ''}" draggable="false">全部 <span class="count">${allEntries.length}</span></li>`;
+            sortedCats.forEach(c => {
+                const active = (viewMode === 'category' && currentFilterCat === c) ? 'active' : '';
+                const count = catMap[c] || 0;
+                catHtml += `<li data-cat="${c}" class="${active}" draggable="true">
+                    ${c} <span class="count">${count}</span>
+                    <span class="action-btns">
+                        <button class="kb-btn" data-cat="${c}" title="新增知识点">＋</button>
+                        <button class="case-btn" data-cat="${c}" title="新增真实病例">📋</button>
+                    </span>
+                </li>`;
+            });
+            categoryList.innerHTML = catHtml;
+
+            // 绑定分类拖拽事件
+            setupCategoryDragDrop();
+
+            // 绑定分类操作按钮
+            document.querySelectorAll('.kb-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const cat = this.dataset.cat;
+                    openAddForm(cat);
+                });
+            });
+            document.querySelectorAll('.case-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const cat = this.dataset.cat;
+                    openCaseForm(cat);
+                });
+            });
+
+            // 热门标签
+            const tagMap = {};
+            allEntries.forEach(e => {
+                if (e.tags) {
+                    e.tags.forEach(t => { tagMap[t] = (tagMap[t] || 0) + 1; });
+                }
+            });
+            let tagHtml = '';
+            Object.keys(tagMap).sort((a, b) => tagMap[b] - tagMap[a]).slice(0, 15).forEach(t => {
+                const active = (currentFilterTag === t && viewMode === 'all') ? 'active' : '';
+                tagHtml += `<span class="tag-item ${active}" data-tag="${t}">${t} (${tagMap[t]})</span>`;
+            });
+            tagCloud.innerHTML = tagHtml || '<span style="font-size:0.8rem;color:#94a3b8;">暂无标签</span>';
+
+            // 分类建议
+            const catOptions = sortedCats;
+            catSuggest.innerHTML = catOptions.map(c => `<option value="${c}">`).join('');
+            catSuggest2.innerHTML = catOptions.map(c => `<option value="${c}">`).join('');
+        }
+
+        // 分类拖拽排序
+        function setupCategoryDragDrop() {
+            const items = categoryList.querySelectorAll('li[data-cat]');
+            let dragItem = null;
+            items.forEach(item => {
+                item.addEventListener('dragstart', function(e) {
+                    if (this.dataset.cat === 'all') { e.preventDefault(); return; }
+                    dragItem = this;
+                    this.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', this.dataset.cat);
+                });
+                item.addEventListener('dragend', function(e) {
+                    this.classList.remove('dragging');
+                    document.querySelectorAll('.category-list li').forEach(li => li.classList.remove('drag-over'));
+                });
+                item.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    if (!dragItem || dragItem === this) return;
+                    this.classList.add('drag-over');
+                });
+                item.addEventListener('dragleave', function(e) {
+                    this.classList.remove('drag-over');
+                });
+                item.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+                    if (!dragItem || dragItem === this) return;
+                    const fromCat = dragItem.dataset.cat;
+                    const toCat = this.dataset.cat;
+                    if (fromCat === 'all' || toCat === 'all') return;
+                    // 获取当前顺序
+                    const order = loadCategoryOrder();
+                    const allCats = getAllCategories(allEntries);
+                    // 从order中移除fromCat，并在toCat的位置插入
+                    let newOrder = order.filter(c => c !== fromCat);
+                    const toIndex = newOrder.indexOf(toCat);
+                    if (toIndex === -1) {
+                        // 如果toCat不在order中，追加到末尾
+                        newOrder.push(fromCat);
+                    } else {
+                        newOrder.splice(toIndex, 0, fromCat);
+                    }
+                    saveCategoryOrder(newOrder);
+                    // 重新渲染
+                    render();
+                });
+            });
+        }
+
+        // ---- 全部视图 ----
+        function renderAllView() {
+            const keyword = document.getElementById('searchInput') ? document.getElementById('searchInput').value.trim().toLowerCase() : '';
+            let filtered = allEntries;
+            if (currentFilterCat !== 'all') {
+                filtered = filtered.filter(e => e.category === currentFilterCat);
+            }
+            if (currentFilterTag) {
+                filtered = filtered.filter(e => e.tags && e.tags.includes(currentFilterTag));
+            }
+            if (keyword) {
+                filtered = filtered.filter(e =>
+                    e.title.toLowerCase().includes(keyword) ||
+                    e.summary.toLowerCase().includes(keyword) ||
+                    e.detail.toLowerCase().includes(keyword) ||
+                    (e.tags && e.tags.some(t => t.toLowerCase().includes(keyword))) ||
+                    (e.type === 'case' && e.caseData && (
+                        e.caseData.chiefComplaint.toLowerCase().includes(keyword) ||
+                        e.caseData.inquiry.toLowerCase().includes(keyword) ||
+                        e.caseData.examination.toLowerCase().includes(keyword) ||
+                        e.caseData.diagnosisThinking.toLowerCase().includes(keyword) ||
+                        e.caseData.referenceAnswer.toLowerCase().includes(keyword)
+                    ))
+                );
+            }
+
+            // 排序（全部视图使用全局顺序）
+            const orderKey = getCardOrderKey('all', null);
+            filtered = sortCardsByOrder(filtered, orderKey);
+
+            let html = `
+                <div class="top-bar">
+                    <div class="search-wrap">
+                        <span class="icon">🔍</span>
+                        <input type="text" id="searchInput" placeholder="搜索标题、标签、主诉、检查..." value="${keyword}" />
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn-primary" id="openAddBtn">+ 新增知识点</button>
+                        <button class="btn-case" id="openCaseBtn">📋 新增真实病例</button>
+                    </div>
+                </div>
+                <div class="grid" id="cardGrid"></div>
+            `;
+            viewContainer.innerHTML = html;
+
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() { render(); });
+            }
+            document.getElementById('openAddBtn').addEventListener('click', () => openAddForm(''));
+            document.getElementById('openCaseBtn').addEventListener('click', () => openCaseForm(''));
+
+            const grid = document.getElementById('cardGrid');
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="no-result">😕 没有找到匹配的条目</div>`;
+                return;
+            }
+            let gridHtml = '';
+            filtered.forEach(entry => {
+                const isCase = entry.type === 'case';
+                const typeLabel = isCase ? '📋 真实病例' : '📖 知识点';
+                const typeClass = isCase ? 'case' : 'knowledge';
+                let summaryText = entry.summary || '暂无摘要';
+                if (isCase && entry.caseData && entry.caseData.chiefComplaint) {
+                    summaryText = '主诉：' + entry.caseData.chiefComplaint;
+                }
+                const tagHtml2 = entry.tags ? entry.tags.map(t => `<span>#${t}</span>`).join('') : '';
+                const imgIndicator = (entry.images && entry.images.length > 0) ? '📷 有图片' : '';
+                gridHtml += `
+                    <div class="card" data-id="${entry.id}" draggable="true">
+                        <span class="card-type ${typeClass}">${typeLabel}</span>
+                        <span class="card-cat">${entry.category}</span>
+                        <h3>${entry.title}</h3>
+                        <div class="card-summary">${summaryText}</div>
+                        <div class="card-tags">${tagHtml2}</div>
+                        <div class="card-footer">
+                            <span>${new Date(entry.updatedAt || entry.createdAt).toLocaleDateString()}</span>
+                            <span class="img-indicator">${imgIndicator}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            grid.innerHTML = gridHtml;
+
+            // 卡片点击详情
+            document.querySelectorAll('.card').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    // 如果点击时在拖拽过程中，不触发
+                    if (this.classList.contains('dragging')) return;
+                    const id = this.dataset.id;
+                    openDetail(id);
+                });
+            });
+
+            // 卡片拖拽排序
+            setupCardDragDrop(grid, 'all', null);
+
+            allCount.textContent = allEntries.length;
+        }
+
+        // ---- 分类详情视图 ----
+        function renderCategoryView() {
+            const cat = currentFilterCat;
+            if (cat === 'all') {
+                viewMode = 'all';
+                render();
+                return;
+            }
+
+            let items = allEntries.filter(e => e.category === cat);
+            if (subTypeFilter === 'knowledge') {
+                items = items.filter(e => e.type === 'knowledge');
+            } else if (subTypeFilter === 'case') {
+                items = items.filter(e => e.type === 'case');
+            }
+            // 排序（分类视图使用分类独立的顺序）
+            const orderKey = getCardOrderKey('category', cat);
+            items = sortCardsByOrder(items, orderKey);
+
+            const totalInCat = allEntries.filter(e => e.category === cat).length;
+            const knowledgeCount = allEntries.filter(e => e.category === cat && e.type === 'knowledge').length;
+            const caseCountInCat = allEntries.filter(e => e.category === cat && e.type === 'case').length;
+
+            let html = `
+                <div class="category-detail-header">
+                    <div class="top-row">
+                        <button class="back-btn" id="backToAllBtn">← 返回全部</button>
+                        <span class="cat-title">📂 ${cat}</span>
+                        <span class="cat-count">（共 ${totalInCat} 条）</span>
+                        <div style="margin-left:auto; display:flex; gap:8px;">
+                            <button class="btn-primary" id="addKbInCat">+ 知识点</button>
+                            <button class="btn-case" id="addCaseInCat">📋 病例</button>
+                        </div>
+                    </div>
+                    <div class="sub-tabs">
+                        <button class="tab-btn ${subTypeFilter === 'all' ? 'active' : ''}" data-sub="all">全部 (${totalInCat})</button>
+                        <button class="tab-btn ${subTypeFilter === 'knowledge' ? 'active' : ''}" data-sub="knowledge">📖 知识点 (${knowledgeCount})</button>
+                        <button class="tab-btn ${subTypeFilter === 'case' ? 'active' : ''}" data-sub="case">📋 真实病例 (${caseCountInCat})</button>
+                    </div>
+                </div>
+                <div class="grid" id="categoryCardGrid"></div>
+            `;
+            viewContainer.innerHTML = html;
+
+            document.getElementById('backToAllBtn').addEventListener('click', function() {
+                viewMode = 'all';
+                currentFilterCat = 'all';
+                subTypeFilter = 'all';
+                render();
+            });
+            document.getElementById('addKbInCat').addEventListener('click', function() {
+                openAddForm(cat);
+            });
+            document.getElementById('addCaseInCat').addEventListener('click', function() {
+                openCaseForm(cat);
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    subTypeFilter = this.dataset.sub;
+                    render();
+                });
+            });
+
+            const grid = document.getElementById('categoryCardGrid');
+            if (items.length === 0) {
+                grid.innerHTML = `<div class="no-result">😕 该分类下暂无此类型条目，点击上方按钮添加吧</div>`;
+                return;
+            }
+            let gridHtml = '';
+            items.forEach(entry => {
+                const isCase = entry.type === 'case';
+                const typeLabel = isCase ? '📋 真实病例' : '📖 知识点';
+                const typeClass = isCase ? 'case' : 'knowledge';
+                let summaryText = entry.summary || '暂无摘要';
+                if (isCase && entry.caseData && entry.caseData.chiefComplaint) {
+                    summaryText = '主诉：' + entry.caseData.chiefComplaint;
+                }
+                const tagHtml2 = entry.tags ? entry.tags.map(t => `<span>#${t}</span>`).join('') : '';
+                const imgIndicator = (entry.images && entry.images.length > 0) ? '📷 有图片' : '';
+                gridHtml += `
+                    <div class="card" data-id="${entry.id}" draggable="true">
+                        <span class="card-type ${typeClass}">${typeLabel}</span>
+                        <span class="card-cat">${entry.category}</span>
+                        <h3>${entry.title}</h3>
+                        <div class="card-summary">${summaryText}</div>
+                        <div class="card-tags">${tagHtml2}</div>
+                        <div class="card-footer">
+                            <span>${new Date(entry.updatedAt || entry.createdAt).toLocaleDateString()}</span>
+                            <span class="img-indicator">${imgIndicator}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            grid.innerHTML = gridHtml;
+
+            document.querySelectorAll('.card').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    if (this.classList.contains('dragging')) return;
+                    const id = this.dataset.id;
+                    openDetail(id);
+                });
+            });
+
+            // 卡片拖拽排序（分类视图）
+            setupCardDragDrop(grid, 'category', cat);
+        }
+
+        // 卡片拖拽排序设置
+        function setupCardDragDrop(grid, viewMode, category) {
+            let dragItem = null;
+            const cards = grid.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.addEventListener('dragstart', function(e) {
+                    dragItem = this;
+                    this.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', this.dataset.id);
+                });
+                card.addEventListener('dragend', function(e) {
+                    this.classList.remove('dragging');
+                    grid.querySelectorAll('.card').forEach(c => c.classList.remove('drag-over'));
+                });
+                card.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    if (!dragItem || dragItem === this) return;
+                    this.classList.add('drag-over');
+                });
+                card.addEventListener('dragleave', function(e) {
+                    this.classList.remove('drag-over');
+                });
+                card.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+                    if (!dragItem || dragItem === this) return;
+                    // 获取当前卡片顺序
+                    const allCards = grid.querySelectorAll('.card');
+                    const ids = Array.from(allCards).map(el => el.dataset.id);
+                    const fromId = dragItem.dataset.id;
+                    const toId = this.dataset.id;
+                    // 交换位置
+                    const fromIndex = ids.indexOf(fromId);
+                    const toIndex = ids.indexOf(toId);
+                    if (fromIndex === -1 || toIndex === -1) return;
+                    // 重新排列ids
+                    ids.splice(fromIndex, 1);
+                    ids.splice(toIndex, 0, fromId);
+                    // 保存顺序
+                    const key = getCardOrderKey(viewMode, category);
+                    if (key) {
+                        saveCardOrder(key, ids);
+                    }
+                    // 重新渲染
+                    render();
+                });
+            });
+        }
+
+        // ================================================================
+        //  7. 详情、表单等操作（与之前基本相同，略作适配）
+        // ================================================================
+        async function openDetail(id) {
+            const entry = await dbGetById(id);
+            if (!entry) return;
+            currentDetailId = id;
+            const isCase = entry.type === 'case';
+            detailType.textContent = isCase ? '📋 真实病例' : '📖 知识点';
+            detailType.className = 'detail-type ' + (isCase ? 'case' : 'knowledge');
+            detailCategory.textContent = entry.category;
+            detailTitle.textContent = entry.title;
+
+            if (isCase) {
+                detailBody.innerHTML = '';
+                caseModulesContainer.style.display = 'block';
+                const cd = entry.caseData || {};
+                detailChiefComplaint.textContent = cd.chiefComplaint || '';
+                detailInquiry.textContent = cd.inquiry || '';
+                detailExamination.textContent = cd.examination || '';
+                detailDiagnosisThinking.textContent = cd.diagnosisThinking || '';
+                detailReferenceAnswer.textContent = cd.referenceAnswer || '';
+                let imgHtml = '';
+                if (entry.images && entry.images.length > 0) {
+                    imgHtml = entry.images.map(img => `<img src="${img}" alt="病例图片" />`).join('');
+                }
+                detailBody.innerHTML = imgHtml;
+                let extraHtml = '';
+                if (cd.extraFields && cd.extraFields.length > 0) {
+                    cd.extraFields.forEach(f => {
+                        extraHtml += `<div class="extra-item"><div class="extra-key">${f.key}</div><div class="extra-value">${f.value}</div></div>`;
+                    });
+                }
+                detailExtraFields.innerHTML = extraHtml || '<span style="color:#94a3b8;">无额外字段</span>';
+            } else {
+                caseModulesContainer.style.display = 'none';
+                let bodyHtml = marked.parse(entry.detail || '暂无详细内容');
+                if (entry.images && entry.images.length > 0) {
+                    const imgHtml = entry.images.map(img => `<img src="${img}" alt="图片" />`).join('');
+                    bodyHtml = imgHtml + bodyHtml;
+                }
+                detailBody.innerHTML = bodyHtml;
+            }
+
+            detailTags.innerHTML = entry.tags ? entry.tags.map(t => `<span>#${t}</span>`).join('') : '无标签';
+            detailModal.classList.add('show');
+        }
+
+        function closeDetail() { detailModal.classList.remove('show'); currentDetailId = null; }
+
+        // 知识点表单
+        function resetForm() {
+            inputTitle.value = '';
+            inputCategory.value = '';
+            inputTags.value = '';
+            inputSummary.value = '';
+            inputDetail.value = '';
+            imagePreviewContainer.innerHTML = '';
+            tempImages = [];
+            imageFileInput.value = '';
+            editingId = null;
+            formTitle.textContent = '📝 新增知识点';
+        }
+
+        function openAddForm(prefillCategory) {
+            resetForm();
+            if (prefillCategory) inputCategory.value = prefillCategory;
+            formModal.classList.add('show');
+        }
+
+        async function openEditForm(id) {
+            const entry = await dbGetById(id);
+            if (!entry) return;
+            resetForm();
+            editingId = id;
+            formTitle.textContent = '✏️ 编辑知识点';
+            inputTitle.value = entry.title || '';
+            inputCategory.value = entry.category || '';
+            inputTags.value = entry.tags ? entry.tags.join(', ') : '';
+            inputSummary.value = entry.summary || '';
+            inputDetail.value = entry.detail || '';
+            if (entry.images && entry.images.length > 0) {
+                tempImages = [...entry.images];
+                tempImages.forEach(src => {
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.className = 'preview-img';
+                    img.style.width = '60px'; img.style.height = '60px';
+                    img.style.objectFit = 'cover'; img.style.borderRadius = '8px';
+                    img.style.border = '1px solid #e2e8f0';
+                    imagePreviewContainer.appendChild(img);
+                });
+            }
+            formModal.classList.add('show');
+        }
+
+        function closeForm() { formModal.classList.remove('show'); }
+
+        imageFileInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    const base64 = ev.target.result;
+                    tempImages.push(base64);
+                    const img = document.createElement('img');
+                    img.src = base64;
+                    img.className = 'preview-img';
+                    img.style.width = '60px'; img.style.height = '60px';
+                    img.style.objectFit = 'cover'; img.style.borderRadius = '8px';
+                    img.style.border = '1px solid #e2e8f0';
+                    imagePreviewContainer.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            }
+            imageFileInput.value = '';
+        });
+
+        saveEntryBtn.addEventListener('click', async function() {
+            const title = inputTitle.value.trim();
+            const category = inputCategory.value.trim();
+            const tagsRaw = inputTags.value.trim();
+            const summary = inputSummary.value.trim() || '暂无摘要';
+            const detail = inputDetail.value.trim() || '暂无详细内容';
+
+            if (!title || !category) { alert('请填写标题和分类！'); return; }
+            const tags = tagsRaw ? tagsRaw.split(',').map(s => s.trim()).filter(s => s) : [];
+            const now = new Date().toISOString();
+
+            if (editingId) {
+                const old = await dbGetById(editingId);
+                if (!old) return;
+                const updated = { ...old, title, category, tags, summary, detail, images: tempImages.length > 0 ? tempImages : old.images || [], updatedAt: now };
+                await dbUpdate(updated);
+            } else {
+                const newEntry = { id: Date.now().toString(36) + Math.random().toString(36).substr(2,6), type: 'knowledge', title, category, tags, summary, detail, images: tempImages, createdAt: now, updatedAt: now };
+                await dbAdd(newEntry);
+            }
+            closeForm();
+            await refreshData();
+        });
+
+        // 病例表单
+        function resetCaseForm() {
+            caseTitle.value = '';
+            caseCategory.value = '';
+            caseTags.value = '';
+            caseChiefComplaint.value = '';
+            caseInquiry.value = '';
+            caseExamination.value = '';
+            caseDiagnosisThinking.value = '';
+            caseReferenceAnswer.value = '';
+            caseImagePreview.innerHTML = '';
+            tempCaseImages = [];
+            caseImageInput.value = '';
+            extraFields = [];
+            extraFieldsContainer.innerHTML = '';
+            caseFormTitle.textContent = '📋 新增真实病例';
+        }
+
+        function openCaseForm(prefillCategory) {
+            resetCaseForm();
+            if (prefillCategory) caseCategory.value = prefillCategory;
+            caseModal.classList.add('show');
+        }
+
+        function closeCaseForm() { caseModal.classList.remove('show'); }
+
+        caseImageInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    const base64 = ev.target.result;
+                    tempCaseImages.push(base64);
+                    const img = document.createElement('img');
+                    img.src = base64;
+                    img.className = 'preview-img';
+                    img.style.width = '60px'; img.style.height = '60px';
+                    img.style.objectFit = 'cover'; img.style.borderRadius = '8px';
+                    img.style.border = '1px solid #e2e8f0';
+                    caseImagePreview.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            }
+            caseImageInput.value = '';
+        });
+
+        addExtraFieldBtn.addEventListener('click', function() {
+            const index = extraFields.length;
+            const div = document.createElement('div');
+            div.className = 'extra-item';
+            div.dataset.index = index;
+            div.innerHTML = `
+                <input type="text" class="extra-key" placeholder="字段名" />
+                <input type="text" class="extra-value" placeholder="字段值" />
+                <button class="remove-extra" data-index="${index}">✕</button>
+            `;
+            extraFieldsContainer.appendChild(div);
+            extraFields.push({ key: '', value: '' });
+            div.querySelector('.remove-extra').addEventListener('click', function() {
+                const idx = parseInt(this.dataset.index);
+                extraFields.splice(idx, 1);
+                renderExtraFields();
+            });
+            div.querySelectorAll('input').forEach(inp => {
+                inp.addEventListener('input', function() {
+                    const idx = parseInt(this.closest('.extra-item').dataset.index);
+                    if (this.classList.contains('extra-key')) extraFields[idx].key = this.value;
+                    else extraFields[idx].value = this.value;
+                });
+            });
+        });
+
+        function renderExtraFields() {
+            extraFieldsContainer.innerHTML = '';
+            extraFields.forEach((f, idx) => {
+                const div = document.createElement('div');
+                div.className = 'extra-item';
+                div.dataset.index = idx;
+                div.innerHTML = `
+                    <input type="text" class="extra-key" placeholder="字段名" value="${f.key}" />
+                    <input type="text" class="extra-value" placeholder="字段值" value="${f.value}" />
+                    <button class="remove-extra" data-index="${idx}">✕</button>
+                `;
+                extraFieldsContainer.appendChild(div);
+                div.querySelector('.remove-extra').addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.index);
+                    extraFields.splice(idx, 1);
+                    renderExtraFields();
+                });
+                div.querySelectorAll('input').forEach(inp => {
+                    inp.addEventListener('input', function() {
+                        const idx = parseInt(this.closest('.extra-item').dataset.index);
+                        if (this.classList.contains('extra-key')) extraFields[idx].key = this.value;
+                        else extraFields[idx].value = this.value;
+                    });
+                });
+            });
+        }
+
+        saveCaseBtn.addEventListener('click', async function() {
+            const title = caseTitle.value.trim();
+            const category = caseCategory.value.trim();
+            const tagsRaw = caseTags.value.trim();
+            const chiefComplaint = caseChiefComplaint.value.trim();
+            const inquiry = caseInquiry.value.trim();
+            const examination = caseExamination.value.trim();
+            const diagnosisThinking = caseDiagnosisThinking.value.trim();
+            const referenceAnswer = caseReferenceAnswer.value.trim();
+
+            if (!title || !category) { alert('请填写标题和分类！'); return; }
+            const extraFieldsData = extraFields.filter(f => f.key.trim() && f.value.trim());
+            const tags = tagsRaw ? tagsRaw.split(',').map(s => s.trim()).filter(s => s) : [];
+            const now = new Date().toISOString();
+            const newEntry = {
+                id: Date.now().toString(36) + Math.random().toString(36).substr(2,6),
+                type: 'case',
+                title,
+                category,
+                tags,
+                summary: chiefComplaint || '暂无主诉',
+                detail: '',
+                images: tempCaseImages,
+                caseData: {
+                    chiefComplaint,
+                    inquiry,
+                    examination,
+                    diagnosisThinking,
+                    referenceAnswer,
+                    extraFields: extraFieldsData
+                },
+                createdAt: now,
+                updatedAt: now
+            };
+            await dbAdd(newEntry);
+            closeCaseForm();
+            await refreshData();
+        });
+
+        // 新增分类
+        function openNewCategoryModal() {
+            newCategoryInput.value = '';
+            newCategoryModal.classList.add('show');
+        }
+        function closeNewCategoryModal() { newCategoryModal.classList.remove('show'); }
+        function addNewCategory() {
+            const name = newCategoryInput.value.trim();
+            if (!name) { alert('请输入分类名称'); return; }
+            const allCats = getAllCategories(allEntries);
+            if (allCats.includes(name)) { alert('该分类已存在！'); return; }
+            const custom = loadCustomCategories();
+            custom.push(name);
+            saveCustomCategories(custom);
+            closeNewCategoryModal();
+            refreshData();
+        }
+        addCategoryBtn.addEventListener('click', openNewCategoryModal);
+        closeNewCategoryBtn.addEventListener('click', closeNewCategoryModal);
+        saveNewCategoryBtn.addEventListener('click', addNewCategory);
+        newCategoryModal.addEventListener('click', (e) => { if (e.target === newCategoryModal) closeNewCategoryModal(); });
+        newCategoryInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addNewCategory(); });
+
+        // 删除
+        detailDeleteBtn.addEventListener('click', async function() {
+            if (!currentDetailId) return;
+            if (confirm('确定永久删除吗？')) {
+                await dbDelete(currentDetailId);
+                closeDetail();
+                await refreshData();
+            }
+        });
+
+        // 备份
+        exportBtn.addEventListener('click', async function() {
+            const data = await dbGetAll();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dental_kb_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        importBtn.addEventListener('click', () => { fileInput.click(); });
+        fileInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(ev) {
+                try {
+                    const imported = JSON.parse(ev.target.result);
+                    if (!Array.isArray(imported)) throw new Error('格式错误');
+                    const all = await dbGetAll();
+                    for (let item of all) await dbDelete(item.id);
+                    for (let item of imported) {
+                        if (!item.id) item.id = Date.now().toString(36) + Math.random().toString(36).substr(2,6);
+                        if (!item.createdAt) item.createdAt = new Date().toISOString();
+                        if (!item.updatedAt) item.updatedAt = item.createdAt;
+                        if (!item.type) item.type = 'knowledge';
+                        await dbAdd(item);
+                    }
+                    alert('✅ 导入成功！共导入 ' + imported.length + ' 条数据。');
+                    await refreshData();
+                } catch (err) {
+                    alert('❌ 导入失败：文件格式不正确。');
+                }
+            };
+            reader.readAsText(file);
+            fileInput.value = '';
+        });
+
+        // 分类点击进入详情
+        categoryList.addEventListener('click', function(e) {
+            const li = e.target.closest('li');
+            if (!li) return;
+            if (e.target.closest('.action-btns')) return;
+            const cat = li.dataset.cat;
+            if (cat === 'all') {
+                viewMode = 'all';
+                currentFilterCat = 'all';
+                subTypeFilter = 'all';
+                currentFilterTag = null;
+            } else {
+                viewMode = 'category';
+                currentFilterCat = cat;
+                subTypeFilter = 'all';
+                currentFilterTag = null;
+            }
+            render();
+        });
+
+        // 标签点击
+        tagCloud.addEventListener('click', function(e) {
+            const span = e.target.closest('.tag-item');
+            if (!span) return;
+            if (viewMode !== 'all') {
+                viewMode = 'all';
+                currentFilterCat = 'all';
+                currentFilterTag = span.dataset.tag;
+                subTypeFilter = 'all';
+                render();
+                return;
+            }
+            const tag = span.dataset.tag;
+            if (currentFilterTag === tag) currentFilterTag = null;
+            else currentFilterTag = tag;
+            render();
+        });
+
+        // 模态框关闭
+        closeFormBtn.addEventListener('click', closeForm);
+        formModal.addEventListener('click', (e) => { if (e.target === formModal) closeForm(); });
+        closeCaseBtn.addEventListener('click', closeCaseForm);
+        caseModal.addEventListener('click', (e) => { if (e.target === caseModal) closeCaseForm(); });
+        closeDetailBtn.addEventListener('click', closeDetail);
+        detailModal.addEventListener('click', (e) => { if (e.target === detailModal) closeDetail(); });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { closeForm(); closeCaseForm(); closeNewCategoryModal(); closeDetail(); }
+        });
+
+        // 编辑按钮
+        const editBtnInDetail = document.createElement('button');
+        editBtnInDetail.textContent = '✏️ 编辑';
+        editBtnInDetail.style.cssText = 'background:#e0f2fe;color:#0369a1;border:none;padding:8px 20px;border-radius:40px;font-weight:600;cursor:pointer;margin-right:10px;';
+        editBtnInDetail.addEventListener('click', async function() {
+            if (!currentDetailId) return;
+            const entry = await dbGetById(currentDetailId);
+            if (!entry) return;
+            if (entry.type === 'case') {
+                alert('病例编辑功能暂未开放，你可以删除后重新添加。');
+                return;
+            }
+            closeDetail();
+            setTimeout(() => openEditForm(currentDetailId), 200);
+        });
+        const deleteBtnParent = detailDeleteBtn.parentNode;
+        deleteBtnParent.insertBefore(editBtnInDetail, detailDeleteBtn);
+
+        // ================================================================
+        //  初始化
+        // ================================================================
+        async function refreshData() {
+            allEntries = await dbGetAll();
+            // 迁移旧数据
+            let needSave = false;
+            allEntries.forEach(e => {
+                if (!e.type) { e.type = 'knowledge'; needSave = true; }
+                if (e.type === 'case' && !e.caseData) {
+                    e.caseData = { chiefComplaint: '', inquiry: '', examination: '', diagnosisThinking: '', referenceAnswer: '', extraFields: [] };
+                    needSave = true;
+                }
+                if (e.type === 'knowledge' && e.caseData) {
+                    delete e.caseData;
+                    needSave = true;
+                }
+            });
+            if (needSave) {
+                for (let e of allEntries) await dbUpdate(e);
+            }
+            render();
+        }
+
+        async function init() {
+            db = await openDB();
+            const existing = await dbGetAll();
+            if (existing.length === 0) {
+                const samples = [
+                    { id: 'demo1', type: 'knowledge', title: '龋病（蛀牙）', category: '牙体牙髓学', tags: ['细菌感染', '充填修复'], summary: '细菌感染导致的牙体硬组织破坏', detail: '**病因**：变形链球菌。\n**分类**：浅龋、中龋、深龋。\n**治疗**：复合树脂充填。', images: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+                    { id: 'demo2', type: 'knowledge', title: '急性牙髓炎', category: '牙体牙髓学', tags: ['冷热痛', '根管治疗'], summary: '牙髓急性炎症，剧烈自发痛，夜间加重', detail: '**症状**：放射性痛，不能定位。\n**治疗**：开髓减压，根管治疗。', images: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+                    { id: 'case1', type: 'case', title: '下颌第一磨牙慢性根尖周炎', category: '牙体牙髓学', tags: ['根尖周炎', 'X线透射区'], summary: '主诉：左下后牙咬合不适1月', detail: '', images: [], caseData: { chiefComplaint: '左下后牙咬合不适1月，偶有牙龈瘘管', inquiry: '患者1月前感左下后牙咀嚼时不适，无自发痛，冷热刺激无加重，有夜间磨牙史', examination: '叩诊（+），根尖区压痛，X线显示根尖区椭圆形透射影，边界清晰', diagnosisThinking: '慢性根尖周炎，需鉴别根尖囊肿，考虑既往有龋坏史', referenceAnswer: '根管治疗后行根尖囊肿刮治术，定期复查' }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+                ];
+                for (let s of samples) await dbAdd(s);
+            }
+            await refreshData();
+            console.log('🦷 系统启动成功，支持拖拽排序！');
+        }
+
+        init();
+    </script>
+</body>
+</html>
