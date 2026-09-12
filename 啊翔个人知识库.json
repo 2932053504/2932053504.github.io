@@ -1,0 +1,96 @@
+[
+  {
+    "id": "demo1",
+    "title": "龋病（蛀牙）",
+    "category": "牙体牙髓学",
+    "tags": [
+      "细菌感染",
+      "充填修复"
+    ],
+    "summary": "细菌感染导致的牙体硬组织破坏",
+    "detail": "**病因**：变形链球菌。\n**分类**：浅龋、中龋、深龋。\n**治疗**：复合树脂充填。",
+    "images": [],
+    "createdAt": "2026-09-08T15:32:42.395Z",
+    "updatedAt": "2026-09-08T15:32:42.395Z",
+    "type": "knowledge"
+  },
+  {
+    "id": "demo2",
+    "title": "急性牙髓炎",
+    "category": "牙体牙髓学",
+    "tags": [
+      "冷热痛",
+      "根管治疗"
+    ],
+    "summary": "牙髓急性炎症，剧烈自发痛，夜间加重",
+    "detail": "**症状**：放射性痛，不能定位。\n**治疗**：开髓减压，根管治疗。",
+    "images": [],
+    "createdAt": "2026-09-08T15:32:42.395Z",
+    "updatedAt": "2026-09-08T15:32:42.395Z",
+    "type": "knowledge"
+  },
+  {
+    "id": "demo3",
+    "title": "慢性牙周炎",
+    "category": "牙周病学",
+    "tags": [
+      "牙结石",
+      "牙槽骨吸收"
+    ],
+    "summary": "牙周支持组织破坏性炎症，牙松动",
+    "detail": "**治疗**：龈上洁治，龈下刮治，翻瓣术。",
+    "images": [],
+    "createdAt": "2026-09-08T15:32:42.395Z",
+    "updatedAt": "2026-09-08T15:32:42.395Z",
+    "type": "knowledge"
+  },
+  {
+    "id": "demo4",
+    "title": "口腔白斑",
+    "category": "口腔黏膜病学",
+    "tags": [
+      "癌前病变",
+      "吸烟"
+    ],
+    "summary": "口腔白色斑块，无法擦去",
+    "detail": "**病因**：吸烟、饮酒。\n**处理**：去除刺激，手术切除。",
+    "images": [],
+    "createdAt": "2026-09-08T15:32:42.395Z",
+    "updatedAt": "2026-09-08T15:32:42.395Z",
+    "type": "knowledge"
+  },
+  {
+    "id": "mtsuher1irqkz7",
+    "type": "case",
+    "title": "在",
+    "category": "口腔黏膜病学",
+    "tags": [],
+    "summary": "1",
+    "detail": "",
+    "images": [],
+    "caseData": {
+      "chiefComplaint": "1",
+      "inquiry": "1",
+      "examination": "1",
+      "diagnosisThinking": "1",
+      "referenceAnswer": "1",
+      "extraFields": []
+    },
+    "createdAt": "2026-09-08T15:49:11.533Z",
+    "updatedAt": "2026-09-08T15:49:11.533Z"
+  },
+  {
+    "id": "mtsui138bxtv5k",
+    "type": "knowledge",
+    "title": "2",
+    "category": "牙体牙髓学",
+    "tags": [
+      "2"
+    ],
+    "summary": "赛道",
+    "detail": "2",
+    "images": [],
+    "createdAt": "2026-09-08T15:49:40.484Z",
+    "updatedAt": "2026-09-08T15:49:40.484Z"
+  }
+]
