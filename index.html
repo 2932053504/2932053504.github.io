@@ -1,1448 +1,1244 @@
-  <<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🦷 口腔专业系统 · 可拖拽排序</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <style>
-        /* ===== 全局样式 ===== */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; height: 100vh; display: flex; color: #0f172a; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🦷 口腔专业系统</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#f1f5f9; height:100vh; display:flex; color:#0f172a; }
 
-        .sidebar {
-            width: 260px; background: #ffffff; border-right: 1px solid #e2e8f0;
-            padding: 24px 16px; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
-        }
-        .sidebar .logo {
-            font-size: 1.5rem; font-weight: 700; margin-bottom: 2px;
-            cursor: pointer; display: flex; align-items: center; gap: 6px;
-        }
-        .sidebar .logo:hover { opacity: 0.7; }
-        .sidebar .logo .edit-icon { font-size: 0.8rem; color: #94a3b8; }
-        .sidebar .sub { font-size: 0.8rem; color: #64748b; margin-bottom: 24px; }
+.sidebar { width:260px; background:#fff; border-right:1px solid #e2e8f0; padding:24px 16px; display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0; }
+.sidebar .logo { font-size:1.5rem; font-weight:700; margin-bottom:2px; cursor:pointer; display:flex; align-items:center; gap:6px; }
+.sidebar .logo:hover { opacity:.7; }
+.sidebar .logo .edit-icon { font-size:.8rem; color:#94a3b8; }
+.sidebar .sub { font-size:.8rem; color:#64748b; margin-bottom:24px; }
 
-        .stat-box {
-            background: #f8fafc; border-radius: 12px; padding: 14px; margin-bottom: 20px;
-            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px;
-        }
-        .stat-box div { text-align: center; }
-        .stat-box .num { font-weight: 700; font-size: 1.2rem; color: #0f172a; }
-        .stat-box .label { font-size: 0.6rem; color: #64748b; text-transform: uppercase; }
+.stat-box { background:#f8fafc; border-radius:12px; padding:14px; margin-bottom:20px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; }
+.stat-box div { text-align:center; }
+.stat-box .num { font-weight:700; font-size:1.2rem; color:#0f172a; }
+.stat-box .label { font-size:.6rem; color:#64748b; text-transform:uppercase; }
 
-        .sidebar .category-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin: 16px 0 8px 0;
-        }
-        .sidebar .category-header h4 { font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; margin: 0; }
-        .sidebar .category-header .add-cat-btn {
-            background: none; border: 1px solid #e2e8f0; border-radius: 40px;
-            padding: 0 10px; font-size: 0.8rem; cursor: pointer; color: #3b82f6;
-            transition: 0.15s; line-height: 1.8;
-        }
-        .sidebar .category-header .add-cat-btn:hover { background: #eff6ff; border-color: #3b82f6; }
+.sidebar h4 { font-size:.75rem; text-transform:uppercase; color:#94a3b8; letter-spacing:.5px; margin:16px 0 8px 0; }
+.category-header { display:flex; justify-content:space-between; align-items:center; margin:16px 0 8px 0; }
+.category-header h4 { margin:0; }
+.category-header .add-cat-btn { background:none; border:1px solid #e2e8f0; border-radius:40px; padding:0 10px; font-size:.8rem; cursor:pointer; color:#3b82f6; line-height:1.8; }
+.category-header .add-cat-btn:hover { background:#eff6ff; border-color:#3b82f6; }
 
-        .category-list {
-            list-style: none; margin-bottom: 12px;
-            min-height: 40px; /* 拖拽区域 */
-        }
-        .category-list li {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 6px 10px; border-radius: 8px; cursor: grab;
-            font-size: 0.9rem; transition: 0.15s; user-select: none;
-            border: 1px solid transparent;
-        }
-        .category-list li:active { cursor: grabbing; }
-        .category-list li.dragging { opacity: 0.5; border: 1px dashed #3b82f6; }
-        .category-list li.drag-over { border-color: #3b82f6; background: #dbeafe; }
-        .category-list li:hover { background: #f1f5f9; }
-        .category-list li.active { background: #dbeafe; color: #1d4ed8; font-weight: 600; }
-        .category-list li .count { color: #94a3b8; font-weight: 400; font-size: 0.8rem; }
-        .category-list li .action-btns {
-            display: flex; gap: 4px; align-items: center;
-        }
-        .category-list li .action-btns button {
-            background: none; border: none; font-size: 0.9rem; cursor: pointer;
-            padding: 0 4px; transition: 0.15s; color: #94a3b8;
-            line-height: 1;
-        }
-        .category-list li .action-btns button:hover { color: #3b82f6; transform: scale(1.2); }
-        .category-list li .action-btns .case-btn:hover { color: #8b5cf6; }
+.category-list { list-style:none; margin-bottom:12px; min-height:40px; }
+.category-list li { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; cursor:grab; font-size:.9rem; transition:.15s; user-select:none; border:1px solid transparent; }
+.category-list li:active { cursor:grabbing; }
+.category-list li.dragging { opacity:.5; border:1px dashed #3b82f6; }
+.category-list li.drag-over { border-color:#3b82f6; background:#dbeafe; }
+.category-list li:hover { background:#f1f5f9; }
+.category-list li.active { background:#dbeafe; color:#1d4ed8; font-weight:600; }
+.category-list li .count { color:#94a3b8; font-weight:400; font-size:.8rem; }
+.category-list li .action-btns { display:flex; gap:4px; align-items:center; }
+.category-list li .action-btns button { background:none; border:none; font-size:.9rem; cursor:pointer; padding:0 4px; color:#94a3b8; line-height:1; }
+.category-list li .action-btns button:hover { color:#3b82f6; transform:scale(1.2); }
+.category-list li .action-btns .case-btn:hover { color:#8b5cf6; }
 
-        .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-        .tag-cloud .tag-item {
-            background: #eef2ff; color: #4338ca; padding: 2px 12px; border-radius: 20px;
-            font-size: 0.75rem; cursor: pointer; transition: 0.15s; border: 1px solid transparent;
-        }
-        .tag-cloud .tag-item:hover { background: #c7d2fe; }
-        .tag-cloud .tag-item.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+.diff-entry { background:#fef3c7; border:1px solid #fcd34d; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:.9rem; font-weight:600; color:#92400e; transition:.15s; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+.diff-entry:hover { background:#fde68a; }
+.diff-entry.active { background:#f59e0b; color:#fff; border-color:#f59e0b; }
 
-        .sidebar .backup-area {
-            margin-top: auto; padding-top: 16px; border-top: 1px solid #e2e8f0;
-            display: flex; gap: 8px; flex-wrap: wrap;
-        }
-        .sidebar .backup-area button {
-            flex: 1; padding: 6px 0; background: white; border: 1px solid #e2e8f0;
-            border-radius: 8px; font-size: 0.75rem; cursor: pointer; transition: 0.15s;
-        }
-        .sidebar .backup-area button:hover { background: #f1f5f9; border-color: #94a3b8; }
-        #fileInput { display: none; }
+.tag-cloud { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.tag-cloud .tag-item { background:#eef2ff; color:#4338ca; padding:2px 12px; border-radius:20px; font-size:.75rem; cursor:pointer; border:1px solid transparent; }
+.tag-cloud .tag-item:hover { background:#c7d2fe; }
+.tag-cloud .tag-item.active { background:#3b82f6; color:#fff; border-color:#3b82f6; }
 
-        /* 主区域 */
-        .main {
-            flex: 1; padding: 24px 32px; overflow-y: auto; display: flex; flex-direction: column;
-        }
+.backup-area { margin-top:auto; padding-top:16px; border-top:1px solid #e2e8f0; display:flex; flex-direction:column; gap:6px; }
+.backup-area button { width:100%; padding:8px 0; background:#fff; border:1px solid #e2e8f0; border-radius:8px; font-size:.8rem; cursor:pointer; font-weight:500; }
+.backup-area button:hover { background:#f1f5f9; border-color:#94a3b8; }
+.backup-area button.primary { background:#10b981; color:#fff; border-color:#10b981; font-weight:600; }
+.backup-area button.primary:hover { background:#059669; }
+.backup-area .save-status { font-size:.65rem; color:#64748b; text-align:center; margin-top:2px; min-height:1em; }
+#fileInput { display:none; }
 
-        /* 分类详情视图头部 */
-        .category-detail-header {
-            display: flex; flex-direction: column; gap: 12px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 16px;
-        }
-        .category-detail-header .top-row {
-            display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-        }
-        .category-detail-header .top-row .back-btn {
-            background: none; border: 1px solid #e2e8f0; border-radius: 40px;
-            padding: 4px 16px; cursor: pointer; font-size: 0.9rem;
-            transition: 0.15s;
-        }
-        .category-detail-header .top-row .back-btn:hover { background: #f1f5f9; }
-        .category-detail-header .top-row .cat-title {
-            font-size: 1.5rem; font-weight: 700; color: #0f172a;
-        }
-        .category-detail-header .top-row .cat-count {
-            color: #64748b; font-size: 0.9rem;
-        }
-        .category-detail-header .sub-tabs {
-            display: flex; gap: 8px;
-        }
-        .category-detail-header .sub-tabs .tab-btn {
-            padding: 6px 20px; border-radius: 40px; border: 1px solid #e2e8f0;
-            background: white; cursor: pointer; font-weight: 500; transition: 0.15s;
-        }
-        .category-detail-header .sub-tabs .tab-btn.active {
-            background: #3b82f6; color: white; border-color: #3b82f6;
-        }
-        .category-detail-header .sub-tabs .tab-btn:hover:not(.active) { background: #f1f5f9; }
+.main { flex:1; padding:24px 32px; overflow-y:auto; display:flex; flex-direction:column; }
 
-        .top-bar {
-            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
-            margin-bottom: 16px; gap: 12px;
-        }
-        .top-bar .search-wrap {
-            flex: 1; min-width: 200px; position: relative;
-        }
-        .top-bar .search-wrap input {
-            width: 100%; padding: 10px 16px 10px 40px; border: 1px solid #e2e8f0;
-            border-radius: 40px; font-size: 0.95rem; background: white; transition: 0.2s;
-        }
-        .top-bar .search-wrap input:focus {
-            outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
-        }
-        .top-bar .search-wrap .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
-        .btn-primary {
-            background: #3b82f6; color: white; border: none; padding: 10px 24px;
-            border-radius: 40px; font-weight: 600; font-size: 0.9rem; cursor: pointer;
-            transition: 0.2s; white-space: nowrap;
-        }
-        .btn-primary:hover { background: #2563eb; box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
-        .btn-case {
-            background: #8b5cf6; color: white; border: none; padding: 10px 24px;
-            border-radius: 40px; font-weight: 600; font-size: 0.9rem; cursor: pointer;
-            transition: 0.2s; white-space: nowrap;
-        }
-        .btn-case:hover { background: #7c3aed; box-shadow: 0 4px 12px rgba(139,92,246,0.3); }
+.top-bar { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; margin-bottom:16px; gap:12px; }
+.top-bar .search-wrap { flex:1; min-width:200px; position:relative; }
+.top-bar .search-wrap input { width:100%; padding:10px 16px 10px 40px; border:1px solid #e2e8f0; border-radius:40px; font-size:.95rem; background:#fff; }
+.top-bar .search-wrap input:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.2); }
+.top-bar .search-wrap .icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; }
 
-        .grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px; flex: 1;
-            min-height: 200px; /* 确保拖拽区域可放置 */
-        }
-        .grid.drag-over { background: #f8fafc; border-radius: 16px; padding: 10px; }
+.btn-primary { background:#3b82f6; color:#fff; border:none; padding:10px 24px; border-radius:40px; font-weight:600; font-size:.9rem; cursor:pointer; white-space:nowrap; }
+.btn-primary:hover { background:#2563eb; }
+.btn-case { background:#8b5cf6; color:#fff; border:none; padding:10px 24px; border-radius:40px; font-weight:600; font-size:.9rem; cursor:pointer; white-space:nowrap; }
+.btn-case:hover { background:#7c3aed; }
+.btn-diff { background:#f59e0b; color:#fff; border:none; padding:10px 24px; border-radius:40px; font-weight:600; font-size:.9rem; cursor:pointer; white-space:nowrap; }
+.btn-diff:hover { background:#d97706; }
 
-        .card {
-            background: white; border-radius: 16px; padding: 18px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;
-            transition: 0.2s; cursor: grab; display: flex; flex-direction: column;
-            user-select: none;
-        }
-        .card:active { cursor: grabbing; }
-        .card.dragging { opacity: 0.4; border: 1px dashed #3b82f6; }
-        .card.drag-over { border-color: #3b82f6; background: #f0f9ff; }
-        .card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.08); border-color: #b9d0f0; }
-        .card .card-type {
-            font-size: 0.65rem; font-weight: 700; padding: 2px 10px; border-radius: 40px;
-            align-self: flex-start; margin-bottom: 6px;
-        }
-        .card .card-type.knowledge { background: #dbeafe; color: #1d4ed8; }
-        .card .card-type.case { background: #ede9fe; color: #7c3aed; }
-        .card .card-cat {
-            font-size: 0.7rem; font-weight: 600; color: #3b82f6; background: #eff6ff;
-            padding: 2px 12px; border-radius: 40px; display: inline-block; align-self: flex-start; margin-bottom: 6px;
-        }
-        .card h3 { font-size: 1.1rem; margin-bottom: 6px; }
-        .card .card-summary {
-            color: #475569; font-size: 0.9rem; line-height: 1.5; flex: 1;
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-        }
-        .card .card-tags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 4px; }
-        .card .card-tags span { background: #f1f5f9; color: #334155; font-size: 0.65rem; padding: 2px 10px; border-radius: 40px; }
-        .card .card-footer {
-            margin-top: 12px; font-size: 0.7rem; color: #94a3b8; border-top: 1px solid #f1f5f9;
-            padding-top: 10px; display: flex; justify-content: space-between;
-        }
-        .card .card-footer .img-indicator { color: #3b82f6; }
-        .no-result { grid-column: 1 / -1; text-align: center; padding: 80px 20px; color: #94a3b8; }
+.category-detail-header { display:flex; flex-direction:column; gap:12px; margin-bottom:20px; border-bottom:2px solid #e2e8f0; padding-bottom:16px; }
+.category-detail-header .top-row { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.category-detail-header .top-row .back-btn { background:none; border:1px solid #e2e8f0; border-radius:40px; padding:4px 16px; cursor:pointer; font-size:.9rem; }
+.category-detail-header .top-row .back-btn:hover { background:#f1f5f9; }
+.category-detail-header .top-row .cat-title { font-size:1.5rem; font-weight:700; }
+.category-detail-header .top-row .cat-count { color:#64748b; font-size:.9rem; }
+.category-detail-header .sub-tabs { display:flex; gap:8px; flex-wrap:wrap; }
+.category-detail-header .sub-tabs .tab-btn { padding:6px 20px; border-radius:40px; border:1px solid #e2e8f0; background:#fff; cursor:pointer; font-weight:500; }
+.category-detail-header .sub-tabs .tab-btn.active { background:#3b82f6; color:#fff; border-color:#3b82f6; }
+.category-detail-header .sub-tabs .tab-btn:hover:not(.active) { background:#f1f5f9; }
 
-        /* 模态框（与之前一致，省略部分样式，但保留） */
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.4); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 999; padding: 20px; }
-        .modal-overlay.show { display: flex; }
-        .modal { background: white; max-width: 800px; width: 100%; border-radius: 24px; padding: 32px; max-height: 92vh; overflow-y: auto; box-shadow: 0 30px 60px rgba(0,0,0,0.2); }
-        .modal h2 { margin-bottom: 20px; }
-        .modal label { display: block; font-weight: 600; font-size: 0.85rem; margin-top: 16px; margin-bottom: 4px; }
-        .modal input, .modal textarea { width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 0.95rem; font-family: inherit; }
-        .modal input:focus, .modal textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
-        .modal textarea { min-height: 60px; resize: vertical; }
-        .modal .image-upload-area { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; align-items: center; }
-        .modal .image-upload-area .preview-img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .modal .image-upload-area .file-input-label { background: #f1f5f9; padding: 6px 16px; border-radius: 30px; font-size: 0.8rem; cursor: pointer; transition: 0.15s; }
-        .modal .image-upload-area .file-input-label:hover { background: #e2e8f0; }
-        .modal .image-upload-area input[type="file"] { display: none; }
-        .modal .extra-fields-area { margin-top: 12px; padding: 12px; background: #f8fafc; border-radius: 12px; }
-        .modal .extra-fields-area .extra-item { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
-        .modal .extra-fields-area .extra-item input { flex: 1; padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; }
-        .modal .extra-fields-area .extra-item .remove-extra { background: none; border: none; color: #ef4444; font-weight: 700; cursor: pointer; }
-        .modal .btn-group { display: flex; gap: 12px; justify-content: flex-end; margin-top: 28px; }
-        .modal .btn-group button { padding: 10px 28px; border-radius: 40px; border: none; font-weight: 600; cursor: pointer; }
-        .modal .btn-cancel { background: #e2e8f0; color: #334155; }
-        .modal .btn-cancel:hover { background: #cbd5e1; }
-        .modal .btn-save { background: #3b82f6; color: white; }
-        .modal .btn-save:hover { background: #2563eb; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; flex:1; min-height:200px; }
+.card { background:#fff; border-radius:16px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,.04); border:1px solid #e2e8f0; transition:.2s; cursor:grab; display:flex; flex-direction:column; user-select:none; }
+.card:active { cursor:grabbing; }
+.card.dragging { opacity:.4; border:1px dashed #3b82f6; }
+.card.drag-over { border-color:#3b82f6; background:#f0f9ff; }
+.card:hover { transform:translateY(-4px); box-shadow:0 12px 30px rgba(0,0,0,.08); border-color:#b9d0f0; }
+.card .card-type { font-size:.65rem; font-weight:700; padding:2px 10px; border-radius:40px; align-self:flex-start; margin-bottom:6px; }
+.card .card-type.knowledge { background:#dbeafe; color:#1d4ed8; }
+.card .card-type.case { background:#ede9fe; color:#7c3aed; }
+.card .card-type.comparison { background:#fef3c7; color:#92400e; }
+.card .card-cat { font-size:.7rem; font-weight:600; color:#3b82f6; background:#eff6ff; padding:2px 12px; border-radius:40px; display:inline-block; align-self:flex-start; margin-bottom:6px; }
+.card h3 { font-size:1.1rem; margin-bottom:6px; }
+.card .card-summary { color:#475569; font-size:.9rem; line-height:1.5; flex:1; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.card .card-tags { margin-top:12px; display:flex; flex-wrap:wrap; gap:4px; }
+.card .card-tags span { background:#f1f5f9; color:#334155; font-size:.65rem; padding:2px 10px; border-radius:40px; }
+.card .card-footer { margin-top:12px; font-size:.7rem; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:10px; display:flex; justify-content:space-between; }
+.no-result { grid-column:1/-1; text-align:center; padding:80px 20px; color:#94a3b8; }
 
-        .detail-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 1000; padding: 30px; }
-        .detail-overlay.show { display: flex; }
-        .detail-box { background: white; max-width: 800px; width: 100%; border-radius: 24px; padding: 32px; max-height: 90vh; overflow-y: auto; box-shadow: 0 30px 60px rgba(0,0,0,0.3); }
-        .detail-box .close-detail { float: right; background: none; border: none; font-size: 1.8rem; cursor: pointer; color: #94a3b8; }
-        .detail-box .close-detail:hover { color: #0f172a; }
-        .detail-box .detail-type { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 14px; border-radius: 40px; margin-bottom: 8px; }
-        .detail-box .detail-type.knowledge { background: #dbeafe; color: #1d4ed8; }
-        .detail-box .detail-type.case { background: #ede9fe; color: #7c3aed; }
-        .detail-box .detail-cat { color: #3b82f6; font-weight: 600; font-size: 0.8rem; }
-        .detail-box h2 { margin: 6px 0 12px 0; }
-        .detail-box .detail-body { margin-top: 12px; line-height: 1.8; color: #1e293b; white-space: pre-wrap; }
-        .detail-box .detail-body img { max-width: 100%; border-radius: 12px; margin: 10px 0; border: 1px solid #e2e8f0; }
-        .detail-box .detail-case-module { margin-top: 16px; padding: 12px; background: #f8fafc; border-radius: 12px; }
-        .detail-box .detail-case-module .module-label { font-weight: 700; color: #0f172a; margin-bottom: 4px; }
-        .detail-box .detail-case-module .module-content { white-space: pre-wrap; font-size: 0.95rem; }
-        .detail-box .detail-extra { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .detail-box .detail-extra .extra-item { background: #f1f5f9; padding: 8px 12px; border-radius: 8px; }
-        .detail-box .detail-extra .extra-item .extra-key { font-weight: 600; font-size: 0.8rem; color: #475569; }
-        .detail-box .detail-extra .extra-item .extra-value { font-size: 0.9rem; }
-        .detail-box .detail-tags { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px; }
-        .detail-box .detail-tags span { background: #f1f5f9; padding: 2px 14px; border-radius: 40px; font-size: 0.8rem; }
-        .detail-box .detail-delete { background: #fee2e2; color: #dc2626; border: none; padding: 8px 20px; border-radius: 40px; font-weight: 600; cursor: pointer; margin-top: 16px; }
+.diff-table-wrap { overflow-x:auto; margin-top:16px; }
+.diff-table { width:100%; border-collapse:collapse; font-size:.9rem; }
+.diff-table th, .diff-table td { border:1px solid #e2e8f0; padding:10px 14px; text-align:left; vertical-align:top; }
+.diff-table th { background:#f8fafc; font-weight:700; color:#0f172a; white-space:nowrap; }
+.diff-table td:first-child { background:#f8fafc; font-weight:600; white-space:nowrap; }
+.diff-table tr:hover td { background:#f0f9ff; }
 
-        @media (max-width: 768px) {
-            .sidebar { display: none; }
-            .main { padding: 16px; }
-            .top-bar { flex-direction: column; align-items: stretch; }
-            .category-detail-header .top-row { flex-wrap: wrap; }
-        }
-    </style>
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.4); backdrop-filter:blur(4px); justify-content:center; align-items:center; z-index:999; padding:20px; }
+.modal-overlay.show { display:flex; }
+.modal { background:#fff; max-width:800px; width:100%; border-radius:24px; padding:32px; max-height:92vh; overflow-y:auto; box-shadow:0 30px 60px rgba(0,0,0,.2); }
+.modal h2 { margin-bottom:20px; }
+.modal label { display:block; font-weight:600; font-size:.85rem; margin-top:16px; margin-bottom:4px; }
+.modal input, .modal select { width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:12px; font-size:.95rem; font-family:inherit; background:#fff; }
+.modal textarea {
+  width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:12px;
+  font-size:.95rem; font-family:inherit; background:#fff;
+  min-height:80px; resize:vertical; overflow-y:hidden;
+  transition:height .1s;
+}
+.modal input:focus, .modal textarea:focus, .modal select:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
+.modal .image-upload-area { display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; align-items:center; }
+.modal .image-upload-area .preview-img { width:60px; height:60px; object-fit:cover; border-radius:8px; border:1px solid #e2e8f0; }
+.modal .image-upload-area .file-input-label { background:#f1f5f9; padding:6px 16px; border-radius:30px; font-size:.8rem; cursor:pointer; }
+.modal .image-upload-area .file-input-label:hover { background:#e2e8f0; }
+.modal .image-upload-area input[type="file"] { display:none; }
+.modal .extra-fields-area { margin-top:12px; padding:12px; background:#f8fafc; border-radius:12px; }
+.modal .extra-fields-area .extra-item { display:flex; gap:8px; margin-bottom:6px; align-items:center; }
+.modal .extra-fields-area .extra-item input { flex:1; padding:6px 10px; border:1px solid #e2e8f0; border-radius:8px; font-size:.85rem; }
+.modal .btn-group { display:flex; gap:12px; justify-content:flex-end; margin-top:28px; }
+.modal .btn-group button { padding:10px 28px; border-radius:40px; border:none; font-weight:600; cursor:pointer; }
+.modal .btn-cancel { background:#e2e8f0; color:#334155; }
+.modal .btn-save { background:#3b82f6; color:#fff; }
+.modal .btn-save:hover { background:#2563eb; }
+
+.diff-diseases-area, .diff-dimensions-area { margin-top:12px; padding:12px; background:#f8fafc; border-radius:12px; }
+.diff-disease-row, .diff-dimension-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
+.diff-disease-row input { flex:1; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:.9rem; min-width:120px; }
+.diff-dimension-row .dim-name { flex:0 0 140px; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:.9rem; font-weight:600; }
+.diff-dimension-row .dim-value { flex:1; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:.9rem; min-width:120px; }
+.remove-row-btn { background:none; border:none; color:#ef4444; font-weight:700; cursor:pointer; font-size:1rem; padding:0 6px; }
+.add-row-btn { background:#f1f5f9; border:1px dashed #94a3b8; border-radius:30px; padding:6px 16px; margin-top:6px; cursor:pointer; font-size:.85rem; }
+.add-row-btn:hover { background:#e2e8f0; }
+
+.detail-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.5); backdrop-filter:blur(4px); justify-content:center; align-items:center; z-index:1000; padding:30px; }
+.detail-overlay.show { display:flex; }
+.detail-box { background:#fff; max-width:900px; width:100%; border-radius:24px; padding:32px; max-height:90vh; overflow-y:auto; box-shadow:0 30px 60px rgba(0,0,0,.3); }
+.detail-box .close-detail { float:right; background:none; border:none; font-size:1.8rem; cursor:pointer; color:#94a3b8; }
+.detail-box .detail-type { display:inline-block; font-size:.7rem; font-weight:700; padding:2px 14px; border-radius:40px; margin-bottom:8px; }
+.detail-box .detail-type.knowledge { background:#dbeafe; color:#1d4ed8; }
+.detail-box .detail-type.case { background:#ede9fe; color:#7c3aed; }
+.detail-box .detail-type.comparison { background:#fef3c7; color:#92400e; }
+.detail-box .detail-cat { color:#3b82f6; font-weight:600; font-size:.8rem; }
+.detail-box h2 { margin:6px 0 12px 0; }
+.detail-box .detail-body { margin-top:12px; line-height:1.8; color:#1e293b; white-space:pre-wrap; }
+.detail-box .detail-body img { max-width:100%; border-radius:12px; margin:10px 0; border:1px solid #e2e8f0; }
+.detail-box .detail-case-module { margin-top:16px; padding:12px; background:#f8fafc; border-radius:12px; }
+.detail-box .detail-case-module .module-label { font-weight:700; margin-bottom:4px; }
+.detail-box .detail-case-module .module-content { white-space:pre-wrap; font-size:.95rem; }
+.detail-box .detail-extra { margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.detail-box .detail-extra .extra-item { background:#f1f5f9; padding:8px 12px; border-radius:8px; }
+.detail-box .detail-extra .extra-item .extra-key { font-weight:600; font-size:.8rem; color:#475569; }
+.detail-box .detail-tags { margin-top:16px; display:flex; flex-wrap:wrap; gap:6px; }
+.detail-box .detail-tags span { background:#f1f5f9; padding:2px 14px; border-radius:40px; font-size:.8rem; }
+.detail-box .detail-delete { background:#fee2e2; color:#dc2626; border:none; padding:8px 20px; border-radius:40px; font-weight:600; cursor:pointer; margin-top:16px; }
+
+@media (max-width:768px) {
+  .sidebar { display:none; }
+  .main { padding:16px; }
+  .top-bar { flex-direction:column; align-items:stretch; }
+}
+</style>
 </head>
 <body>
-    <!-- ======= 侧边栏 ======= -->
-    <aside class="sidebar">
-        <div class="logo" id="logoTitle">🦷 <span>DentalKB</span> <span class="edit-icon">✎</span></div>
-        <div class="sub" id="subTitle">口腔知识库 + 病例</div>
 
-        <div class="stat-box">
-            <div><div class="num" id="totalCount">0</div><div class="label">总条目</div></div>
-            <div><div class="num" id="caseCount">0</div><div class="label">病例</div></div>
-            <div><div class="num" id="catCount">0</div><div class="label">分类</div></div>
-        </div>
+<aside class="sidebar">
+  <div class="logo" id="logoTitle">🦷 <span>DentalKB</span> <span class="edit-icon">✎</span></div>
+  <div class="sub">口腔知识库 + 病例 + 鉴别诊断</div>
 
-        <div class="category-header">
-            <h4>📂 分类</h4>
-            <button class="add-cat-btn" id="addCategoryBtn">＋ 新增</button>
-        </div>
-        <ul class="category-list" id="categoryList">
-            <li data-cat="all" class="active">全部 <span class="count" id="allCount">0</span></li>
-        </ul>
+  <div class="stat-box">
+    <div><div class="num" id="totalCount">0</div><div class="label">总条目</div></div>
+    <div><div class="num" id="caseCount">0</div><div class="label">病例</div></div>
+    <div><div class="num" id="diffCount">0</div><div class="label">对比组</div></div>
+  </div>
 
-        <h4>🏷️ 热门标签</h4>
-        <div class="tag-cloud" id="tagCloud"></div>
+  <div class="category-header">
+    <h4>📂 分类</h4>
+    <button class="add-cat-btn" id="addCategoryBtn">＋ 新增</button>
+  </div>
+  <ul class="category-list" id="categoryList">
+    <li data-cat="all" class="active">全部 <span class="count" id="allCount">0</span></li>
+  </ul>
 
-        <div class="backup-area">
-            <button id="exportBtn">📤 导出备份</button>
-            <button id="importBtn">📥 导入备份</button>
-            <input type="file" id="fileInput" accept=".json" />
-        </div>
-    </aside>
+  <h4>🔬 鉴别诊断</h4>
+  <div class="diff-entry" id="diffEntry">📊 进入鉴别诊断对比</div>
 
-    <!-- ======= 主区域 ======= -->
-    <main class="main" id="mainContent">
-        <div id="viewContainer"></div>
-    </main>
+  <h4>🏷️ 热门标签</h4>
+  <div class="tag-cloud" id="tagCloud"></div>
 
-    <!-- ======= 模态框（知识点、病例、分类、详情） ======= -->
-    <!-- 知识点模态框 -->
-    <div class="modal-overlay" id="formModal">
-        <div class="modal">
-            <h2 id="formTitle">📝 新增知识点</h2>
-            <label>标题 *</label>
-            <input type="text" id="inputTitle" placeholder="如：可复性牙髓炎" />
-            <label>分类 *</label>
-            <input type="text" id="inputCategory" placeholder="如：牙体牙髓学" list="catSuggest" />
-            <datalist id="catSuggest"></datalist>
-            <label>标签（用英文逗号分割）</label>
-            <input type="text" id="inputTags" placeholder="标签1, 标签2" />
-            <label>摘要</label>
-            <input type="text" id="inputSummary" placeholder="一句话概括" />
-            <label>详细内容（支持 Markdown）</label>
-            <textarea id="inputDetail" rows="4" placeholder="病因：...\n治疗：..."></textarea>
-            <label>图片</label>
-            <div class="image-upload-area">
-                <label class="file-input-label">📎 选择图片</label>
-                <input type="file" id="imageFileInput" accept="image/*" multiple />
-                <div id="imagePreviewContainer" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;"></div>
-            </div>
-            <div class="btn-group">
-                <button class="btn-cancel" id="closeFormBtn">取消</button>
-                <button class="btn-save" id="saveEntryBtn">保存</button>
-            </div>
-        </div>
+  <div class="backup-area">
+    <button class="primary" id="saveToFileBtn">💾 保存到文件（自动同步）</button>
+    <button id="exportBtn">📤 导出备份</button>
+    <button id="importBtn">📥 导入备份</button>
+    <div class="save-status" id="saveStatus">未选择保存文件</div>
+    <input type="file" id="fileInput" accept=".json" />
+  </div>
+</aside>
+
+<main class="main" id="mainContent">
+  <div id="viewContainer"></div>
+</main>
+
+<!-- 知识点 -->
+<div class="modal-overlay" id="formModal">
+  <div class="modal">
+    <h2 id="formTitle">📝 新增知识点</h2>
+    <label>标题 *</label>
+    <input type="text" id="inputTitle" placeholder="如：可复性牙髓炎" />
+    <label>分类 *</label>
+    <input type="text" id="inputCategory" placeholder="如：牙体牙髓学" list="catSuggest" />
+    <datalist id="catSuggest"></datalist>
+    <label>标签（用英文逗号分割）</label>
+    <input type="text" id="inputTags" placeholder="标签1, 标签2" />
+    <label>定义</label>
+    <input type="text" id="inputSummary" placeholder="简要定义" />
+    <label>详细内容（支持 Markdown）</label>
+    <textarea id="inputDetail" rows="4" placeholder="病因：...&#10;治疗：..."></textarea>
+    <label>图片</label>
+    <div class="image-upload-area">
+      <label class="file-input-label" for="imageFileInput">📎 选择图片</label>
+      <input type="file" id="imageFileInput" accept="image/*" multiple />
+      <div id="imagePreviewContainer" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;"></div>
     </div>
-
-    <!-- 病例模态框 -->
-    <div class="modal-overlay" id="caseModal">
-        <div class="modal">
-            <h2 id="caseFormTitle">📋 新增真实病例</h2>
-            <label>标题 *</label>
-            <input type="text" id="caseTitle" placeholder="病例标题" />
-            <label>分类 *</label>
-            <input type="text" id="caseCategory" placeholder="如：牙体牙髓学" list="catSuggest2" />
-            <datalist id="catSuggest2"></datalist>
-            <label>标签（用英文逗号分割）</label>
-            <input type="text" id="caseTags" placeholder="典型病例, 根管治疗" />
-            <label>① 主诉呈现</label>
-            <textarea id="caseChiefComplaint" rows="2" placeholder="患者主诉"></textarea>
-            <label>② 问诊发现</label>
-            <textarea id="caseInquiry" rows="3" placeholder="问诊内容"></textarea>
-            <label>③ 检查结果</label>
-            <textarea id="caseExamination" rows="3" placeholder="检查结果"></textarea>
-            <label>④ 诊断思考</label>
-            <textarea id="caseDiagnosisThinking" rows="3" placeholder="诊断思路"></textarea>
-            <label>⑤ 参考答案</label>
-            <textarea id="caseReferenceAnswer" rows="3" placeholder="参考答案"></textarea>
-            <label>⑥ 图片呈现</label>
-            <div class="image-upload-area">
-                <label class="file-input-label">📎 选择图片</label>
-                <input type="file" id="caseImageInput" accept="image/*" multiple />
-                <div id="caseImagePreview" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;"></div>
-            </div>
-            <label style="margin-top:12px;">📌 额外字段</label>
-            <div class="extra-fields-area" id="extraFieldsContainer"></div>
-            <button type="button" id="addExtraFieldBtn" style="background:#f1f5f9; border:1px dashed #94a3b8; border-radius:30px; padding:6px 16px; margin-top:6px; cursor:pointer;">➕ 添加额外字段</button>
-            <div class="btn-group">
-                <button class="btn-cancel" id="closeCaseBtn">取消</button>
-                <button class="btn-save" id="saveCaseBtn">保存病例</button>
-            </div>
-        </div>
+    <div class="btn-group">
+      <button class="btn-cancel" id="closeFormBtn">取消</button>
+      <button class="btn-save" id="saveEntryBtn">保存</button>
     </div>
+  </div>
+</div>
 
-    <!-- 新增分类模态框 -->
-    <div class="modal-overlay" id="newCategoryModal">
-        <div class="modal" style="max-width:400px;">
-            <h2>📂 新增分类</h2>
-            <label>分类名称 *</label>
-            <input type="text" id="newCategoryInput" placeholder="如：口腔颌面外科" />
-            <div class="btn-group">
-                <button class="btn-cancel" id="closeNewCategoryBtn">取消</button>
-                <button class="btn-save" id="saveNewCategoryBtn">创建</button>
-            </div>
-        </div>
+<!-- 病例 -->
+<div class="modal-overlay" id="caseModal">
+  <div class="modal">
+    <h2 id="caseFormTitle">📋 新增真实病例</h2>
+    <label>标题 *</label>
+    <input type="text" id="caseTitle" placeholder="病例标题" />
+    <label>分类 *</label>
+    <input type="text" id="caseCategory" placeholder="如：牙体牙髓学" list="catSuggest2" />
+    <datalist id="catSuggest2"></datalist>
+    <label>标签（用英文逗号分割）</label>
+    <input type="text" id="caseTags" placeholder="典型病例, 根管治疗" />
+    <label>① 主诉呈现</label>
+    <textarea id="caseChiefComplaint" rows="2" placeholder="患者主诉"></textarea>
+    <label>② 问诊发现</label>
+    <textarea id="caseInquiry" rows="3" placeholder="问诊内容"></textarea>
+    <label>③ 检查结果</label>
+    <textarea id="caseExamination" rows="3" placeholder="检查结果"></textarea>
+    <label>④ 诊断思考</label>
+    <textarea id="caseDiagnosisThinking" rows="3" placeholder="诊断思路"></textarea>
+    <label>⑤ 参考答案</label>
+    <textarea id="caseReferenceAnswer" rows="3" placeholder="参考答案"></textarea>
+    <label>⑥ 图片呈现</label>
+    <div class="image-upload-area">
+      <label class="file-input-label" for="caseImageInput">📎 选择图片</label>
+      <input type="file" id="caseImageInput" accept="image/*" multiple />
+      <div id="caseImagePreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;"></div>
     </div>
-
-    <!-- 修改知识库名称模态框 -->
-    <div class="modal-overlay" id="renameModal">
-        <div class="modal" style="max-width:400px;">
-            <h2>✏️ 修改知识库名称</h2>
-            <label>新名称</label>
-            <input type="text" id="renameInput" placeholder="输入新名称" />
-            <div class="btn-group">
-                <button class="btn-cancel" id="closeRenameBtn">取消</button>
-                <button class="btn-save" id="saveRenameBtn">保存</button>
-            </div>
-        </div>
+    <label style="margin-top:12px;">📌 额外字段</label>
+    <div class="extra-fields-area" id="extraFieldsContainer"></div>
+    <button type="button" id="addExtraFieldBtn" class="add-row-btn">➕ 添加额外字段</button>
+    <div class="btn-group">
+      <button class="btn-cancel" id="closeCaseBtn">取消</button>
+      <button class="btn-save" id="saveCaseBtn">保存病例</button>
     </div>
+  </div>
+</div>
 
-    <!-- 详情模态框 -->
-    <div class="detail-overlay" id="detailModal">
-        <div class="detail-box">
-            <button class="close-detail" id="closeDetailBtn">&times;</button>
-            <div class="detail-type" id="detailType">知识点</div>
-            <div class="detail-cat" id="detailCategory">分类</div>
-            <h2 id="detailTitle">标题</h2>
-            <div class="detail-body" id="detailBody"></div>
-            <div id="caseModulesContainer" style="display:none;">
-                <div class="detail-case-module"><div class="module-label">① 主诉呈现</div><div class="module-content" id="detailChiefComplaint"></div></div>
-                <div class="detail-case-module"><div class="module-label">② 问诊发现</div><div class="module-content" id="detailInquiry"></div></div>
-                <div class="detail-case-module"><div class="module-label">③ 检查结果</div><div class="module-content" id="detailExamination"></div></div>
-                <div class="detail-case-module"><div class="module-label">④ 诊断思考</div><div class="module-content" id="detailDiagnosisThinking"></div></div>
-                <div class="detail-case-module"><div class="module-label">⑤ 参考答案</div><div class="module-content" id="detailReferenceAnswer"></div></div>
-                <div id="detailExtraFields" class="detail-extra"></div>
-            </div>
-            <div class="detail-tags" id="detailTags"></div>
-            <button class="detail-delete" id="detailDeleteBtn">🗑️ 删除此条目</button>
-        </div>
+<!-- 鉴别诊断 -->
+<div class="modal-overlay" id="diffModal">
+  <div class="modal" style="max-width:900px;">
+    <h2 id="diffFormTitle">🔬 新增鉴别诊断对比组</h2>
+    <label>对比组标题 *</label>
+    <input type="text" id="diffTitle" placeholder="如：急性牙髓炎 vs 急性根尖周炎" />
+    <label>分类 *</label>
+    <input type="text" id="diffCategory" placeholder="如：牙体牙髓学" list="catSuggest3" />
+    <datalist id="catSuggest3"></datalist>
+    <label>标签（用英文逗号分割）</label>
+    <input type="text" id="diffTags" placeholder="鉴别诊断, 疼痛" />
+    <label>快速模板（选一个自动填维度）</label>
+    <select id="diffTemplate">
+      <option value="none">— 不选择 —</option>
+      <option value="pulp">🦷 牙髓/根尖病（疼痛性质、定位、冷热刺激、叩诊、牙髓活力、X线）</option>
+      <option value="perio">🩸 牙周病（牙龈出血、牙周袋深度、附着丧失、牙槽骨吸收、松动度）</option>
+      <option value="mucosa">👄 口腔黏膜病（好发部位、形态、颜色、疼痛、癌变风险）</option>
+      <option value="infection">🔥 颌面部感染（红肿热痛、张口度、发热、白细胞、X线/CT）</option>
+    </select>
+    <label>临床要点/备注</label>
+    <textarea id="diffNotes" rows="2" placeholder="总结鉴别关键点..."></textarea>
+
+    <label style="margin-top:16px;">参与对比的疾病（至少2个）</label>
+    <div class="diff-diseases-area" id="diffDiseasesArea"></div>
+    <button type="button" id="addDiseaseBtn" class="add-row-btn">➕ 添加疾病</button>
+
+    <label style="margin-top:16px;">对比维度</label>
+    <div class="diff-dimensions-area" id="diffDimensionsArea"></div>
+    <button type="button" id="addDimensionBtn" class="add-row-btn">➕ 添加对比维度</button>
+
+    <div class="btn-group">
+      <button class="btn-cancel" id="closeDiffBtn">取消</button>
+      <button class="btn-save" id="saveDiffBtn">保存对比组</button>
     </div>
-
-    <script>
-        // ================================================================
-        //  1. IndexedDB 层（不变）
-        // ================================================================
-        const DB_NAME = 'DentalKB';
-        const STORE_NAME = 'entries';
-        let db = null;
-
-        function openDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, 1);
-                request.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                        store.createIndex('category', 'category', { unique: false });
-                        store.createIndex('tags', 'tags', { unique: false, multiEntry: true });
-                        store.createIndex('title', 'title', { unique: false });
-                        store.createIndex('type', 'type', { unique: false });
-                    }
-                };
-                request.onsuccess = (e) => { resolve(e.target.result); };
-                request.onerror = (e) => { reject(e.target.error); };
-            });
-        }
-
-        function dbAdd(entry) { return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, 'readwrite'); const store = tx.objectStore(STORE_NAME); const req = store.add(entry); req.onsuccess = () => resolve(entry); req.onerror = () => reject(req.error); }); }
-        function dbUpdate(entry) { return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, 'readwrite'); const store = tx.objectStore(STORE_NAME); const req = store.put(entry); req.onsuccess = () => resolve(entry); req.onerror = () => reject(req.error); }); }
-        function dbDelete(id) { return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, 'readwrite'); const store = tx.objectStore(STORE_NAME); const req = store.delete(id); req.onsuccess = () => resolve(); req.onerror = () => reject(req.error); }); }
-        function dbGetAll() { return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, 'readonly'); const store = tx.objectStore(STORE_NAME); const req = store.getAll(); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); }); }
-        function dbGetById(id) { return new Promise((resolve, reject) => { const tx = db.transaction(STORE_NAME, 'readonly'); const store = tx.objectStore(STORE_NAME); const req = store.get(id); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); }); }
-
-        // ================================================================
-        //  2. 分类管理 + 拖拽排序
-        // ================================================================
-        const CUSTOM_CATEGORIES_KEY = 'dental_custom_categories';
-        const CATEGORY_ORDER_KEY = 'dental_category_order';
-
-        function loadCustomCategories() {
-            const stored = localStorage.getItem(CUSTOM_CATEGORIES_KEY);
-            if (stored) { try { return JSON.parse(stored); } catch(e) { return []; } }
-            return [];
-        }
-        function saveCustomCategories(cats) { localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(cats)); }
-
-        function loadCategoryOrder() {
-            const stored = localStorage.getItem(CATEGORY_ORDER_KEY);
-            if (stored) { try { return JSON.parse(stored); } catch(e) { return []; } }
-            return [];
-        }
-        function saveCategoryOrder(order) { localStorage.setItem(CATEGORY_ORDER_KEY, JSON.stringify(order)); }
-
-        function getAllCategories(entries) {
-            const fromEntries = new Set();
-            entries.forEach(e => { if (e.category) fromEntries.add(e.category); });
-            const custom = loadCustomCategories();
-            const all = new Set([...fromEntries, ...custom]);
-            return Array.from(all).sort();
-        }
-
-        // 获取排序后的分类列表（结合自定义顺序）
-        function getSortedCategories(entries) {
-            const allCats = getAllCategories(entries);
-            const order = loadCategoryOrder();
-            // 先按order排，未在order中的按字母排
-            const ordered = [];
-            const unordered = [];
-            const orderSet = new Set(order);
-            allCats.forEach(c => {
-                if (orderSet.has(c)) ordered.push(c);
-                else unordered.push(c);
-            });
-            // 按order数组的顺序排
-            const sorted = [];
-            order.forEach(c => { if (allCats.includes(c)) sorted.push(c); });
-            // 追加未排序的（按字母）
-            unordered.sort().forEach(c => sorted.push(c));
-            return sorted;
-        }
-
-        // ================================================================
-        //  3. 卡片排序管理
-        // ================================================================
-        function getCardOrderKey(viewMode, category) {
-            if (viewMode === 'all') return 'dental_card_order_all';
-            else if (viewMode === 'category') return `dental_card_order_cat_${category}`;
-            return null;
-        }
-
-        function loadCardOrder(key) {
-            const stored = localStorage.getItem(key);
-            if (stored) { try { return JSON.parse(stored); } catch(e) { return []; } }
-            return [];
-        }
-
-        function saveCardOrder(key, order) {
-            localStorage.setItem(key, JSON.stringify(order));
-        }
-
-        // 对卡片列表按保存的顺序排序
-        function sortCardsByOrder(cards, orderKey) {
-            const order = loadCardOrder(orderKey);
-            if (order.length === 0) return cards;
-            const idMap = {};
-            cards.forEach(c => { idMap[c.id] = c; });
-            const orderedCards = [];
-            // 先按order中的顺序
-            order.forEach(id => {
-                if (idMap[id]) {
-                    orderedCards.push(idMap[id]);
-                    delete idMap[id];
-                }
-            });
-            // 剩余未在order中的追加
-            Object.values(idMap).forEach(c => orderedCards.push(c));
-            return orderedCards;
-        }
-
-        // 保存当前显示的卡片顺序
-        function saveCurrentCardOrder(viewMode, category, cardElements) {
-            const key = getCardOrderKey(viewMode, category);
-            if (!key) return;
-            const ids = [];
-            cardElements.forEach(el => {
-                const id = el.dataset.id;
-                if (id) ids.push(id);
-            });
-            saveCardOrder(key, ids);
-        }
-
-        // ================================================================
-        //  4. 全局状态
-        // ================================================================
-        let allEntries = [];
-        let viewMode = 'all';
-        let currentFilterCat = 'all';
-        let subTypeFilter = 'all';
-        let currentFilterTag = null;
-        let editingId = null;
-        let tempImages = [];
-        let tempCaseImages = [];
-        let extraFields = [];
-
-        // ================================================================
-        //  5. DOM 引用
-        // ================================================================
-        const viewContainer = document.getElementById('viewContainer');
-        const categoryList = document.getElementById('categoryList');
-        const tagCloud = document.getElementById('tagCloud');
-        const totalCount = document.getElementById('totalCount');
-        const caseCount = document.getElementById('caseCount');
-        const catCount = document.getElementById('catCount');
-        const allCount = document.getElementById('allCount');
-        const logoTitle = document.getElementById('logoTitle');
-        const subTitle = document.getElementById('subTitle');
-
-        // 知识库名称管理
-        const RENAME_KEY = 'dental_kb_name';
-        function loadKbName() {
-            return localStorage.getItem(RENAME_KEY) || 'DentalKB';
-        }
-        function saveKbName(name) {
-            localStorage.setItem(RENAME_KEY, name);
-            updateKbNameDisplay();
-        }
-        function updateKbNameDisplay() {
-            const name = loadKbName();
-            logoTitle.innerHTML = `🦷 <span>${name}</span> <span class="edit-icon">✎</span>`;
-        }
-        // 点击名称弹出修改框
-        logoTitle.addEventListener('click', function() {
-            document.getElementById('renameInput').value = loadKbName();
-            document.getElementById('renameModal').classList.add('show');
-        });
-        document.getElementById('closeRenameBtn').addEventListener('click', function() {
-            document.getElementById('renameModal').classList.remove('show');
-        });
-        document.getElementById('saveRenameBtn').addEventListener('click', function() {
-            const newName = document.getElementById('renameInput').value.trim();
-            if (newName) {
-                saveKbName(newName);
-                document.getElementById('renameModal').classList.remove('show');
-            }
-        });
-        document.getElementById('renameModal').addEventListener('click', function(e) {
-            if (e.target === this) this.classList.remove('show');
-        });
-        // 初始化名称
-        updateKbNameDisplay();
-
-        // 知识点、病例表单等（与之前相同，此处省略重复DOM引用，但保留事件绑定）
-        // 为了简洁，我们在后面直接引用
-        // ...
-
-        // ================================================================
-        //  6. 渲染主函数
-        // ================================================================
-        function render() {
-            updateSidebar();
-
-            if (viewMode === 'all') {
-                renderAllView();
-            } else if (viewMode === 'category') {
-                renderCategoryView();
-            }
-        }
-
-        // 更新侧边栏（分类列表支持拖拽排序）
-        function updateSidebar() {
-            totalCount.textContent = allEntries.length;
-            const cases = allEntries.filter(e => e.type === 'case');
-            caseCount.textContent = cases.length;
-            const allCats = getAllCategories(allEntries);
-            catCount.textContent = allCats.length;
-
-            // 分类列表 - 使用排序后的顺序
-            const sortedCats = getSortedCategories(allEntries);
-            const catMap = {};
-            allEntries.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + 1; });
-            const customCats = loadCustomCategories();
-            customCats.forEach(c => { if (!(c in catMap)) catMap[c] = 0; });
-
-            let catHtml = `<li data-cat="all" class="${viewMode === 'all' && currentFilterCat === 'all' ? 'active' : ''}" draggable="false">全部 <span class="count">${allEntries.length}</span></li>`;
-            sortedCats.forEach(c => {
-                const active = (viewMode === 'category' && currentFilterCat === c) ? 'active' : '';
-                const count = catMap[c] || 0;
-                catHtml += `<li data-cat="${c}" class="${active}" draggable="true">
-                    ${c} <span class="count">${count}</span>
-                    <span class="action-btns">
-                        <button class="kb-btn" data-cat="${c}" title="新增知识点">＋</button>
-                        <button class="case-btn" data-cat="${c}" title="新增真实病例">📋</button>
-                    </span>
-                </li>`;
-            });
-            categoryList.innerHTML = catHtml;
-
-            // 绑定分类拖拽事件
-            setupCategoryDragDrop();
-
-            // 绑定分类操作按钮
-            document.querySelectorAll('.kb-btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const cat = this.dataset.cat;
-                    openAddForm(cat);
-                });
-            });
-            document.querySelectorAll('.case-btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const cat = this.dataset.cat;
-                    openCaseForm(cat);
-                });
-            });
-
-            // 热门标签
-            const tagMap = {};
-            allEntries.forEach(e => {
-                if (e.tags) {
-                    e.tags.forEach(t => { tagMap[t] = (tagMap[t] || 0) + 1; });
-                }
-            });
-            let tagHtml = '';
-            Object.keys(tagMap).sort((a, b) => tagMap[b] - tagMap[a]).slice(0, 15).forEach(t => {
-                const active = (currentFilterTag === t && viewMode === 'all') ? 'active' : '';
-                tagHtml += `<span class="tag-item ${active}" data-tag="${t}">${t} (${tagMap[t]})</span>`;
-            });
-            tagCloud.innerHTML = tagHtml || '<span style="font-size:0.8rem;color:#94a3b8;">暂无标签</span>';
-
-            // 分类建议
-            const catOptions = sortedCats;
-            catSuggest.innerHTML = catOptions.map(c => `<option value="${c}">`).join('');
-            catSuggest2.innerHTML = catOptions.map(c => `<option value="${c}">`).join('');
-        }
-
-        // 分类拖拽排序
-        function setupCategoryDragDrop() {
-            const items = categoryList.querySelectorAll('li[data-cat]');
-            let dragItem = null;
-            items.forEach(item => {
-                item.addEventListener('dragstart', function(e) {
-                    if (this.dataset.cat === 'all') { e.preventDefault(); return; }
-                    dragItem = this;
-                    this.classList.add('dragging');
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', this.dataset.cat);
-                });
-                item.addEventListener('dragend', function(e) {
-                    this.classList.remove('dragging');
-                    document.querySelectorAll('.category-list li').forEach(li => li.classList.remove('drag-over'));
-                });
-                item.addEventListener('dragover', function(e) {
-                    e.preventDefault();
-                    if (!dragItem || dragItem === this) return;
-                    this.classList.add('drag-over');
-                });
-                item.addEventListener('dragleave', function(e) {
-                    this.classList.remove('drag-over');
-                });
-                item.addEventListener('drop', function(e) {
-                    e.preventDefault();
-                    this.classList.remove('drag-over');
-                    if (!dragItem || dragItem === this) return;
-                    const fromCat = dragItem.dataset.cat;
-                    const toCat = this.dataset.cat;
-                    if (fromCat === 'all' || toCat === 'all') return;
-                    // 获取当前顺序
-                    const order = loadCategoryOrder();
-                    const allCats = getAllCategories(allEntries);
-                    // 从order中移除fromCat，并在toCat的位置插入
-                    let newOrder = order.filter(c => c !== fromCat);
-                    const toIndex = newOrder.indexOf(toCat);
-                    if (toIndex === -1) {
-                        // 如果toCat不在order中，追加到末尾
-                        newOrder.push(fromCat);
-                    } else {
-                        newOrder.splice(toIndex, 0, fromCat);
-                    }
-                    saveCategoryOrder(newOrder);
-                    // 重新渲染
-                    render();
-                });
-            });
-        }
-
-        // ---- 全部视图 ----
-        function renderAllView() {
-            const keyword = document.getElementById('searchInput') ? document.getElementById('searchInput').value.trim().toLowerCase() : '';
-            let filtered = allEntries;
-            if (currentFilterCat !== 'all') {
-                filtered = filtered.filter(e => e.category === currentFilterCat);
-            }
-            if (currentFilterTag) {
-                filtered = filtered.filter(e => e.tags && e.tags.includes(currentFilterTag));
-            }
-            if (keyword) {
-                filtered = filtered.filter(e =>
-                    e.title.toLowerCase().includes(keyword) ||
-                    e.summary.toLowerCase().includes(keyword) ||
-                    e.detail.toLowerCase().includes(keyword) ||
-                    (e.tags && e.tags.some(t => t.toLowerCase().includes(keyword))) ||
-                    (e.type === 'case' && e.caseData && (
-                        e.caseData.chiefComplaint.toLowerCase().includes(keyword) ||
-                        e.caseData.inquiry.toLowerCase().includes(keyword) ||
-                        e.caseData.examination.toLowerCase().includes(keyword) ||
-                        e.caseData.diagnosisThinking.toLowerCase().includes(keyword) ||
-                        e.caseData.referenceAnswer.toLowerCase().includes(keyword)
-                    ))
-                );
-            }
-
-            // 排序（全部视图使用全局顺序）
-            const orderKey = getCardOrderKey('all', null);
-            filtered = sortCardsByOrder(filtered, orderKey);
-
-            let html = `
-                <div class="top-bar">
-                    <div class="search-wrap">
-                        <span class="icon">🔍</span>
-                        <input type="text" id="searchInput" placeholder="搜索标题、标签、主诉、检查..." value="${keyword}" />
-                    </div>
-                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button class="btn-primary" id="openAddBtn">+ 新增知识点</button>
-                        <button class="btn-case" id="openCaseBtn">📋 新增真实病例</button>
-                    </div>
-                </div>
-                <div class="grid" id="cardGrid"></div>
-            `;
-            viewContainer.innerHTML = html;
-
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                searchInput.addEventListener('input', function() { render(); });
-            }
-            document.getElementById('openAddBtn').addEventListener('click', () => openAddForm(''));
-            document.getElementById('openCaseBtn').addEventListener('click', () => openCaseForm(''));
-
-            const grid = document.getElementById('cardGrid');
-            if (filtered.length === 0) {
-                grid.innerHTML = `<div class="no-result">😕 没有找到匹配的条目</div>`;
-                return;
-            }
-            let gridHtml = '';
-            filtered.forEach(entry => {
-                const isCase = entry.type === 'case';
-                const typeLabel = isCase ? '📋 真实病例' : '📖 知识点';
-                const typeClass = isCase ? 'case' : 'knowledge';
-                let summaryText = entry.summary || '暂无摘要';
-                if (isCase && entry.caseData && entry.caseData.chiefComplaint) {
-                    summaryText = '主诉：' + entry.caseData.chiefComplaint;
-                }
-                const tagHtml2 = entry.tags ? entry.tags.map(t => `<span>#${t}</span>`).join('') : '';
-                const imgIndicator = (entry.images && entry.images.length > 0) ? '📷 有图片' : '';
-                gridHtml += `
-                    <div class="card" data-id="${entry.id}" draggable="true">
-                        <span class="card-type ${typeClass}">${typeLabel}</span>
-                        <span class="card-cat">${entry.category}</span>
-                        <h3>${entry.title}</h3>
-                        <div class="card-summary">${summaryText}</div>
-                        <div class="card-tags">${tagHtml2}</div>
-                        <div class="card-footer">
-                            <span>${new Date(entry.updatedAt || entry.createdAt).toLocaleDateString()}</span>
-                            <span class="img-indicator">${imgIndicator}</span>
-                        </div>
-                    </div>
-                `;
-            });
-            grid.innerHTML = gridHtml;
-
-            // 卡片点击详情
-            document.querySelectorAll('.card').forEach(el => {
-                el.addEventListener('click', function(e) {
-                    // 如果点击时在拖拽过程中，不触发
-                    if (this.classList.contains('dragging')) return;
-                    const id = this.dataset.id;
-                    openDetail(id);
-                });
-            });
-
-            // 卡片拖拽排序
-            setupCardDragDrop(grid, 'all', null);
-
-            allCount.textContent = allEntries.length;
-        }
-
-        // ---- 分类详情视图 ----
-        function renderCategoryView() {
-            const cat = currentFilterCat;
-            if (cat === 'all') {
-                viewMode = 'all';
-                render();
-                return;
-            }
-
-            let items = allEntries.filter(e => e.category === cat);
-            if (subTypeFilter === 'knowledge') {
-                items = items.filter(e => e.type === 'knowledge');
-            } else if (subTypeFilter === 'case') {
-                items = items.filter(e => e.type === 'case');
-            }
-            // 排序（分类视图使用分类独立的顺序）
-            const orderKey = getCardOrderKey('category', cat);
-            items = sortCardsByOrder(items, orderKey);
-
-            const totalInCat = allEntries.filter(e => e.category === cat).length;
-            const knowledgeCount = allEntries.filter(e => e.category === cat && e.type === 'knowledge').length;
-            const caseCountInCat = allEntries.filter(e => e.category === cat && e.type === 'case').length;
-
-            let html = `
-                <div class="category-detail-header">
-                    <div class="top-row">
-                        <button class="back-btn" id="backToAllBtn">← 返回全部</button>
-                        <span class="cat-title">📂 ${cat}</span>
-                        <span class="cat-count">（共 ${totalInCat} 条）</span>
-                        <div style="margin-left:auto; display:flex; gap:8px;">
-                            <button class="btn-primary" id="addKbInCat">+ 知识点</button>
-                            <button class="btn-case" id="addCaseInCat">📋 病例</button>
-                        </div>
-                    </div>
-                    <div class="sub-tabs">
-                        <button class="tab-btn ${subTypeFilter === 'all' ? 'active' : ''}" data-sub="all">全部 (${totalInCat})</button>
-                        <button class="tab-btn ${subTypeFilter === 'knowledge' ? 'active' : ''}" data-sub="knowledge">📖 知识点 (${knowledgeCount})</button>
-                        <button class="tab-btn ${subTypeFilter === 'case' ? 'active' : ''}" data-sub="case">📋 真实病例 (${caseCountInCat})</button>
-                    </div>
-                </div>
-                <div class="grid" id="categoryCardGrid"></div>
-            `;
-            viewContainer.innerHTML = html;
-
-            document.getElementById('backToAllBtn').addEventListener('click', function() {
-                viewMode = 'all';
-                currentFilterCat = 'all';
-                subTypeFilter = 'all';
-                render();
-            });
-            document.getElementById('addKbInCat').addEventListener('click', function() {
-                openAddForm(cat);
-            });
-            document.getElementById('addCaseInCat').addEventListener('click', function() {
-                openCaseForm(cat);
-            });
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    subTypeFilter = this.dataset.sub;
-                    render();
-                });
-            });
-
-            const grid = document.getElementById('categoryCardGrid');
-            if (items.length === 0) {
-                grid.innerHTML = `<div class="no-result">😕 该分类下暂无此类型条目，点击上方按钮添加吧</div>`;
-                return;
-            }
-            let gridHtml = '';
-            items.forEach(entry => {
-                const isCase = entry.type === 'case';
-                const typeLabel = isCase ? '📋 真实病例' : '📖 知识点';
-                const typeClass = isCase ? 'case' : 'knowledge';
-                let summaryText = entry.summary || '暂无摘要';
-                if (isCase && entry.caseData && entry.caseData.chiefComplaint) {
-                    summaryText = '主诉：' + entry.caseData.chiefComplaint;
-                }
-                const tagHtml2 = entry.tags ? entry.tags.map(t => `<span>#${t}</span>`).join('') : '';
-                const imgIndicator = (entry.images && entry.images.length > 0) ? '📷 有图片' : '';
-                gridHtml += `
-                    <div class="card" data-id="${entry.id}" draggable="true">
-                        <span class="card-type ${typeClass}">${typeLabel}</span>
-                        <span class="card-cat">${entry.category}</span>
-                        <h3>${entry.title}</h3>
-                        <div class="card-summary">${summaryText}</div>
-                        <div class="card-tags">${tagHtml2}</div>
-                        <div class="card-footer">
-                            <span>${new Date(entry.updatedAt || entry.createdAt).toLocaleDateString()}</span>
-                            <span class="img-indicator">${imgIndicator}</span>
-                        </div>
-                    </div>
-                `;
-            });
-            grid.innerHTML = gridHtml;
-
-            document.querySelectorAll('.card').forEach(el => {
-                el.addEventListener('click', function(e) {
-                    if (this.classList.contains('dragging')) return;
-                    const id = this.dataset.id;
-                    openDetail(id);
-                });
-            });
-
-            // 卡片拖拽排序（分类视图）
-            setupCardDragDrop(grid, 'category', cat);
-        }
-
-        // 卡片拖拽排序设置
-        function setupCardDragDrop(grid, viewMode, category) {
-            let dragItem = null;
-            const cards = grid.querySelectorAll('.card');
-            cards.forEach(card => {
-                card.addEventListener('dragstart', function(e) {
-                    dragItem = this;
-                    this.classList.add('dragging');
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', this.dataset.id);
-                });
-                card.addEventListener('dragend', function(e) {
-                    this.classList.remove('dragging');
-                    grid.querySelectorAll('.card').forEach(c => c.classList.remove('drag-over'));
-                });
-                card.addEventListener('dragover', function(e) {
-                    e.preventDefault();
-                    if (!dragItem || dragItem === this) return;
-                    this.classList.add('drag-over');
-                });
-                card.addEventListener('dragleave', function(e) {
-                    this.classList.remove('drag-over');
-                });
-                card.addEventListener('drop', function(e) {
-                    e.preventDefault();
-                    this.classList.remove('drag-over');
-                    if (!dragItem || dragItem === this) return;
-                    // 获取当前卡片顺序
-                    const allCards = grid.querySelectorAll('.card');
-                    const ids = Array.from(allCards).map(el => el.dataset.id);
-                    const fromId = dragItem.dataset.id;
-                    const toId = this.dataset.id;
-                    // 交换位置
-                    const fromIndex = ids.indexOf(fromId);
-                    const toIndex = ids.indexOf(toId);
-                    if (fromIndex === -1 || toIndex === -1) return;
-                    // 重新排列ids
-                    ids.splice(fromIndex, 1);
-                    ids.splice(toIndex, 0, fromId);
-                    // 保存顺序
-                    const key = getCardOrderKey(viewMode, category);
-                    if (key) {
-                        saveCardOrder(key, ids);
-                    }
-                    // 重新渲染
-                    render();
-                });
-            });
-        }
-
-        // ================================================================
-        //  7. 详情、表单等操作（与之前基本相同，略作适配）
-        // ================================================================
-        async function openDetail(id) {
-            const entry = await dbGetById(id);
-            if (!entry) return;
-            currentDetailId = id;
-            const isCase = entry.type === 'case';
-            detailType.textContent = isCase ? '📋 真实病例' : '📖 知识点';
-            detailType.className = 'detail-type ' + (isCase ? 'case' : 'knowledge');
-            detailCategory.textContent = entry.category;
-            detailTitle.textContent = entry.title;
-
-            if (isCase) {
-                detailBody.innerHTML = '';
-                caseModulesContainer.style.display = 'block';
-                const cd = entry.caseData || {};
-                detailChiefComplaint.textContent = cd.chiefComplaint || '';
-                detailInquiry.textContent = cd.inquiry || '';
-                detailExamination.textContent = cd.examination || '';
-                detailDiagnosisThinking.textContent = cd.diagnosisThinking || '';
-                detailReferenceAnswer.textContent = cd.referenceAnswer || '';
-                let imgHtml = '';
-                if (entry.images && entry.images.length > 0) {
-                    imgHtml = entry.images.map(img => `<img src="${img}" alt="病例图片" />`).join('');
-                }
-                detailBody.innerHTML = imgHtml;
-                let extraHtml = '';
-                if (cd.extraFields && cd.extraFields.length > 0) {
-                    cd.extraFields.forEach(f => {
-                        extraHtml += `<div class="extra-item"><div class="extra-key">${f.key}</div><div class="extra-value">${f.value}</div></div>`;
-                    });
-                }
-                detailExtraFields.innerHTML = extraHtml || '<span style="color:#94a3b8;">无额外字段</span>';
-            } else {
-                caseModulesContainer.style.display = 'none';
-                let bodyHtml = marked.parse(entry.detail || '暂无详细内容');
-                if (entry.images && entry.images.length > 0) {
-                    const imgHtml = entry.images.map(img => `<img src="${img}" alt="图片" />`).join('');
-                    bodyHtml = imgHtml + bodyHtml;
-                }
-                detailBody.innerHTML = bodyHtml;
-            }
-
-            detailTags.innerHTML = entry.tags ? entry.tags.map(t => `<span>#${t}</span>`).join('') : '无标签';
-            detailModal.classList.add('show');
-        }
-
-        function closeDetail() { detailModal.classList.remove('show'); currentDetailId = null; }
-
-        // 知识点表单
-        function resetForm() {
-            inputTitle.value = '';
-            inputCategory.value = '';
-            inputTags.value = '';
-            inputSummary.value = '';
-            inputDetail.value = '';
-            imagePreviewContainer.innerHTML = '';
-            tempImages = [];
-            imageFileInput.value = '';
-            editingId = null;
-            formTitle.textContent = '📝 新增知识点';
-        }
-
-        function openAddForm(prefillCategory) {
-            resetForm();
-            if (prefillCategory) inputCategory.value = prefillCategory;
-            formModal.classList.add('show');
-        }
-
-        async function openEditForm(id) {
-            const entry = await dbGetById(id);
-            if (!entry) return;
-            resetForm();
-            editingId = id;
-            formTitle.textContent = '✏️ 编辑知识点';
-            inputTitle.value = entry.title || '';
-            inputCategory.value = entry.category || '';
-            inputTags.value = entry.tags ? entry.tags.join(', ') : '';
-            inputSummary.value = entry.summary || '';
-            inputDetail.value = entry.detail || '';
-            if (entry.images && entry.images.length > 0) {
-                tempImages = [...entry.images];
-                tempImages.forEach(src => {
-                    const img = document.createElement('img');
-                    img.src = src;
-                    img.className = 'preview-img';
-                    img.style.width = '60px'; img.style.height = '60px';
-                    img.style.objectFit = 'cover'; img.style.borderRadius = '8px';
-                    img.style.border = '1px solid #e2e8f0';
-                    imagePreviewContainer.appendChild(img);
-                });
-            }
-            formModal.classList.add('show');
-        }
-
-        function closeForm() { formModal.classList.remove('show'); }
-
-        imageFileInput.addEventListener('change', function(e) {
-            const files = e.target.files;
-            for (let file of files) {
-                const reader = new FileReader();
-                reader.onload = function(ev) {
-                    const base64 = ev.target.result;
-                    tempImages.push(base64);
-                    const img = document.createElement('img');
-                    img.src = base64;
-                    img.className = 'preview-img';
-                    img.style.width = '60px'; img.style.height = '60px';
-                    img.style.objectFit = 'cover'; img.style.borderRadius = '8px';
-                    img.style.border = '1px solid #e2e8f0';
-                    imagePreviewContainer.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            }
-            imageFileInput.value = '';
-        });
-
-        saveEntryBtn.addEventListener('click', async function() {
-            const title = inputTitle.value.trim();
-            const category = inputCategory.value.trim();
-            const tagsRaw = inputTags.value.trim();
-            const summary = inputSummary.value.trim() || '暂无摘要';
-            const detail = inputDetail.value.trim() || '暂无详细内容';
-
-            if (!title || !category) { alert('请填写标题和分类！'); return; }
-            const tags = tagsRaw ? tagsRaw.split(',').map(s => s.trim()).filter(s => s) : [];
-            const now = new Date().toISOString();
-
-            if (editingId) {
-                const old = await dbGetById(editingId);
-                if (!old) return;
-                const updated = { ...old, title, category, tags, summary, detail, images: tempImages.length > 0 ? tempImages : old.images || [], updatedAt: now };
-                await dbUpdate(updated);
-            } else {
-                const newEntry = { id: Date.now().toString(36) + Math.random().toString(36).substr(2,6), type: 'knowledge', title, category, tags, summary, detail, images: tempImages, createdAt: now, updatedAt: now };
-                await dbAdd(newEntry);
-            }
-            closeForm();
-            await refreshData();
-        });
-
-        // 病例表单
-        function resetCaseForm() {
-            caseTitle.value = '';
-            caseCategory.value = '';
-            caseTags.value = '';
-            caseChiefComplaint.value = '';
-            caseInquiry.value = '';
-            caseExamination.value = '';
-            caseDiagnosisThinking.value = '';
-            caseReferenceAnswer.value = '';
-            caseImagePreview.innerHTML = '';
-            tempCaseImages = [];
-            caseImageInput.value = '';
-            extraFields = [];
-            extraFieldsContainer.innerHTML = '';
-            caseFormTitle.textContent = '📋 新增真实病例';
-        }
-
-        function openCaseForm(prefillCategory) {
-            resetCaseForm();
-            if (prefillCategory) caseCategory.value = prefillCategory;
-            caseModal.classList.add('show');
-        }
-
-        function closeCaseForm() { caseModal.classList.remove('show'); }
-
-        caseImageInput.addEventListener('change', function(e) {
-            const files = e.target.files;
-            for (let file of files) {
-                const reader = new FileReader();
-                reader.onload = function(ev) {
-                    const base64 = ev.target.result;
-                    tempCaseImages.push(base64);
-                    const img = document.createElement('img');
-                    img.src = base64;
-                    img.className = 'preview-img';
-                    img.style.width = '60px'; img.style.height = '60px';
-                    img.style.objectFit = 'cover'; img.style.borderRadius = '8px';
-                    img.style.border = '1px solid #e2e8f0';
-                    caseImagePreview.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            }
-            caseImageInput.value = '';
-        });
-
-        addExtraFieldBtn.addEventListener('click', function() {
-            const index = extraFields.length;
-            const div = document.createElement('div');
-            div.className = 'extra-item';
-            div.dataset.index = index;
-            div.innerHTML = `
-                <input type="text" class="extra-key" placeholder="字段名" />
-                <input type="text" class="extra-value" placeholder="字段值" />
-                <button class="remove-extra" data-index="${index}">✕</button>
-            `;
-            extraFieldsContainer.appendChild(div);
-            extraFields.push({ key: '', value: '' });
-            div.querySelector('.remove-extra').addEventListener('click', function() {
-                const idx = parseInt(this.dataset.index);
-                extraFields.splice(idx, 1);
-                renderExtraFields();
-            });
-            div.querySelectorAll('input').forEach(inp => {
-                inp.addEventListener('input', function() {
-                    const idx = parseInt(this.closest('.extra-item').dataset.index);
-                    if (this.classList.contains('extra-key')) extraFields[idx].key = this.value;
-                    else extraFields[idx].value = this.value;
-                });
-            });
-        });
-
-        function renderExtraFields() {
-            extraFieldsContainer.innerHTML = '';
-            extraFields.forEach((f, idx) => {
-                const div = document.createElement('div');
-                div.className = 'extra-item';
-                div.dataset.index = idx;
-                div.innerHTML = `
-                    <input type="text" class="extra-key" placeholder="字段名" value="${f.key}" />
-                    <input type="text" class="extra-value" placeholder="字段值" value="${f.value}" />
-                    <button class="remove-extra" data-index="${idx}">✕</button>
-                `;
-                extraFieldsContainer.appendChild(div);
-                div.querySelector('.remove-extra').addEventListener('click', function() {
-                    const idx = parseInt(this.dataset.index);
-                    extraFields.splice(idx, 1);
-                    renderExtraFields();
-                });
-                div.querySelectorAll('input').forEach(inp => {
-                    inp.addEventListener('input', function() {
-                        const idx = parseInt(this.closest('.extra-item').dataset.index);
-                        if (this.classList.contains('extra-key')) extraFields[idx].key = this.value;
-                        else extraFields[idx].value = this.value;
-                    });
-                });
-            });
-        }
-
-        saveCaseBtn.addEventListener('click', async function() {
-            const title = caseTitle.value.trim();
-            const category = caseCategory.value.trim();
-            const tagsRaw = caseTags.value.trim();
-            const chiefComplaint = caseChiefComplaint.value.trim();
-            const inquiry = caseInquiry.value.trim();
-            const examination = caseExamination.value.trim();
-            const diagnosisThinking = caseDiagnosisThinking.value.trim();
-            const referenceAnswer = caseReferenceAnswer.value.trim();
-
-            if (!title || !category) { alert('请填写标题和分类！'); return; }
-            const extraFieldsData = extraFields.filter(f => f.key.trim() && f.value.trim());
-            const tags = tagsRaw ? tagsRaw.split(',').map(s => s.trim()).filter(s => s) : [];
-            const now = new Date().toISOString();
-            const newEntry = {
-                id: Date.now().toString(36) + Math.random().toString(36).substr(2,6),
-                type: 'case',
-                title,
-                category,
-                tags,
-                summary: chiefComplaint || '暂无主诉',
-                detail: '',
-                images: tempCaseImages,
-                caseData: {
-                    chiefComplaint,
-                    inquiry,
-                    examination,
-                    diagnosisThinking,
-                    referenceAnswer,
-                    extraFields: extraFieldsData
-                },
-                createdAt: now,
-                updatedAt: now
-            };
-            await dbAdd(newEntry);
-            closeCaseForm();
-            await refreshData();
-        });
-
-        // 新增分类
-        function openNewCategoryModal() {
-            newCategoryInput.value = '';
-            newCategoryModal.classList.add('show');
-        }
-        function closeNewCategoryModal() { newCategoryModal.classList.remove('show'); }
-        function addNewCategory() {
-            const name = newCategoryInput.value.trim();
-            if (!name) { alert('请输入分类名称'); return; }
-            const allCats = getAllCategories(allEntries);
-            if (allCats.includes(name)) { alert('该分类已存在！'); return; }
-            const custom = loadCustomCategories();
-            custom.push(name);
-            saveCustomCategories(custom);
-            closeNewCategoryModal();
-            refreshData();
-        }
-        addCategoryBtn.addEventListener('click', openNewCategoryModal);
-        closeNewCategoryBtn.addEventListener('click', closeNewCategoryModal);
-        saveNewCategoryBtn.addEventListener('click', addNewCategory);
-        newCategoryModal.addEventListener('click', (e) => { if (e.target === newCategoryModal) closeNewCategoryModal(); });
-        newCategoryInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addNewCategory(); });
-
-        // 删除
-        detailDeleteBtn.addEventListener('click', async function() {
-            if (!currentDetailId) return;
-            if (confirm('确定永久删除吗？')) {
-                await dbDelete(currentDetailId);
-                closeDetail();
-                await refreshData();
-            }
-        });
-
-        // 备份
-        exportBtn.addEventListener('click', async function() {
-            const data = await dbGetAll();
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `dental_kb_backup_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        });
-
-        importBtn.addEventListener('click', () => { fileInput.click(); });
-        fileInput.addEventListener('change', async function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async function(ev) {
-                try {
-                    const imported = JSON.parse(ev.target.result);
-                    if (!Array.isArray(imported)) throw new Error('格式错误');
-                    const all = await dbGetAll();
-                    for (let item of all) await dbDelete(item.id);
-                    for (let item of imported) {
-                        if (!item.id) item.id = Date.now().toString(36) + Math.random().toString(36).substr(2,6);
-                        if (!item.createdAt) item.createdAt = new Date().toISOString();
-                        if (!item.updatedAt) item.updatedAt = item.createdAt;
-                        if (!item.type) item.type = 'knowledge';
-                        await dbAdd(item);
-                    }
-                    alert('✅ 导入成功！共导入 ' + imported.length + ' 条数据。');
-                    await refreshData();
-                } catch (err) {
-                    alert('❌ 导入失败：文件格式不正确。');
-                }
-            };
-            reader.readAsText(file);
-            fileInput.value = '';
-        });
-
-        // 分类点击进入详情
-        categoryList.addEventListener('click', function(e) {
-            const li = e.target.closest('li');
-            if (!li) return;
-            if (e.target.closest('.action-btns')) return;
-            const cat = li.dataset.cat;
-            if (cat === 'all') {
-                viewMode = 'all';
-                currentFilterCat = 'all';
-                subTypeFilter = 'all';
-                currentFilterTag = null;
-            } else {
-                viewMode = 'category';
-                currentFilterCat = cat;
-                subTypeFilter = 'all';
-                currentFilterTag = null;
-            }
-            render();
-        });
-
-        // 标签点击
-        tagCloud.addEventListener('click', function(e) {
-            const span = e.target.closest('.tag-item');
-            if (!span) return;
-            if (viewMode !== 'all') {
-                viewMode = 'all';
-                currentFilterCat = 'all';
-                currentFilterTag = span.dataset.tag;
-                subTypeFilter = 'all';
-                render();
-                return;
-            }
-            const tag = span.dataset.tag;
-            if (currentFilterTag === tag) currentFilterTag = null;
-            else currentFilterTag = tag;
-            render();
-        });
-
-        // 模态框关闭
-        closeFormBtn.addEventListener('click', closeForm);
-        formModal.addEventListener('click', (e) => { if (e.target === formModal) closeForm(); });
-        closeCaseBtn.addEventListener('click', closeCaseForm);
-        caseModal.addEventListener('click', (e) => { if (e.target === caseModal) closeCaseForm(); });
-        closeDetailBtn.addEventListener('click', closeDetail);
-        detailModal.addEventListener('click', (e) => { if (e.target === detailModal) closeDetail(); });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') { closeForm(); closeCaseForm(); closeNewCategoryModal(); closeDetail(); }
-        });
-
-        // 编辑按钮
-        const editBtnInDetail = document.createElement('button');
-        editBtnInDetail.textContent = '✏️ 编辑';
-        editBtnInDetail.style.cssText = 'background:#e0f2fe;color:#0369a1;border:none;padding:8px 20px;border-radius:40px;font-weight:600;cursor:pointer;margin-right:10px;';
-        editBtnInDetail.addEventListener('click', async function() {
-            if (!currentDetailId) return;
-            const entry = await dbGetById(currentDetailId);
-            if (!entry) return;
-            if (entry.type === 'case') {
-                alert('病例编辑功能暂未开放，你可以删除后重新添加。');
-                return;
-            }
-            closeDetail();
-            setTimeout(() => openEditForm(currentDetailId), 200);
-        });
-        const deleteBtnParent = detailDeleteBtn.parentNode;
-        deleteBtnParent.insertBefore(editBtnInDetail, detailDeleteBtn);
-
-        // ================================================================
-        //  初始化
-        // ================================================================
-        async function refreshData() {
-            allEntries = await dbGetAll();
-            // 迁移旧数据
-            let needSave = false;
-            allEntries.forEach(e => {
-                if (!e.type) { e.type = 'knowledge'; needSave = true; }
-                if (e.type === 'case' && !e.caseData) {
-                    e.caseData = { chiefComplaint: '', inquiry: '', examination: '', diagnosisThinking: '', referenceAnswer: '', extraFields: [] };
-                    needSave = true;
-                }
-                if (e.type === 'knowledge' && e.caseData) {
-                    delete e.caseData;
-                    needSave = true;
-                }
-            });
-            if (needSave) {
-                for (let e of allEntries) await dbUpdate(e);
-            }
-            render();
-        }
-
-        async function init() {
-            db = await openDB();
-            const existing = await dbGetAll();
-            if (existing.length === 0) {
-                const samples = [
-                    { id: 'demo1', type: 'knowledge', title: '龋病（蛀牙）', category: '牙体牙髓学', tags: ['细菌感染', '充填修复'], summary: '细菌感染导致的牙体硬组织破坏', detail: '**病因**：变形链球菌。\n**分类**：浅龋、中龋、深龋。\n**治疗**：复合树脂充填。', images: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-                    { id: 'demo2', type: 'knowledge', title: '急性牙髓炎', category: '牙体牙髓学', tags: ['冷热痛', '根管治疗'], summary: '牙髓急性炎症，剧烈自发痛，夜间加重', detail: '**症状**：放射性痛，不能定位。\n**治疗**：开髓减压，根管治疗。', images: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-                    { id: 'case1', type: 'case', title: '下颌第一磨牙慢性根尖周炎', category: '牙体牙髓学', tags: ['根尖周炎', 'X线透射区'], summary: '主诉：左下后牙咬合不适1月', detail: '', images: [], caseData: { chiefComplaint: '左下后牙咬合不适1月，偶有牙龈瘘管', inquiry: '患者1月前感左下后牙咀嚼时不适，无自发痛，冷热刺激无加重，有夜间磨牙史', examination: '叩诊（+），根尖区压痛，X线显示根尖区椭圆形透射影，边界清晰', diagnosisThinking: '慢性根尖周炎，需鉴别根尖囊肿，考虑既往有龋坏史', referenceAnswer: '根管治疗后行根尖囊肿刮治术，定期复查' }, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-                ];
-                for (let s of samples) await dbAdd(s);
-            }
-            await refreshData();
-            console.log('🦷 系统启动成功，支持拖拽排序！');
-        }
-
-        init();
-    </script>
+  </div>
+</div>
+
+<!-- 新增分类 -->
+<div class="modal-overlay" id="newCategoryModal">
+  <div class="modal" style="max-width:400px;">
+    <h2>📂 新增分类</h2>
+    <label>分类名称 *</label>
+    <input type="text" id="newCategoryInput" placeholder="如：口腔颌面外科" />
+    <div class="btn-group">
+      <button class="btn-cancel" id="closeNewCategoryBtn">取消</button>
+      <button class="btn-save" id="saveNewCategoryBtn">创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- 修改名称 -->
+<div class="modal-overlay" id="renameModal">
+  <div class="modal" style="max-width:400px;">
+    <h2>✏️ 修改知识库名称</h2>
+    <label>新名称</label>
+    <input type="text" id="renameInput" placeholder="输入新名称" />
+    <div class="btn-group">
+      <button class="btn-cancel" id="closeRenameBtn">取消</button>
+      <button class="btn-save" id="saveRenameBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 详情 -->
+<div class="detail-overlay" id="detailModal">
+  <div class="detail-box">
+    <button class="close-detail" id="closeDetailBtn">&times;</button>
+    <div class="detail-type" id="detailType">知识点</div>
+    <div class="detail-cat" id="detailCategory">分类</div>
+    <h2 id="detailTitle">标题</h2>
+    <div class="detail-body" id="detailBody"></div>
+    <div id="caseModulesContainer" style="display:none;">
+      <div class="detail-case-module"><div class="module-label">① 主诉呈现</div><div class="module-content" id="detailChiefComplaint"></div></div>
+      <div class="detail-case-module"><div class="module-label">② 问诊发现</div><div class="module-content" id="detailInquiry"></div></div>
+      <div class="detail-case-module"><div class="module-label">③ 检查结果</div><div class="module-content" id="detailExamination"></div></div>
+      <div class="detail-case-module"><div class="module-label">④ 诊断思考</div><div class="module-content" id="detailDiagnosisThinking"></div></div>
+      <div class="detail-case-module"><div class="module-label">⑤ 参考答案</div><div class="module-content" id="detailReferenceAnswer"></div></div>
+      <div id="detailExtraFields" class="detail-extra"></div>
+    </div>
+    <div id="comparisonContainer" style="display:none;">
+      <div class="diff-table-wrap" id="diffTableWrap"></div>
+    </div>
+    <div class="detail-tags" id="detailTags"></div>
+    <button class="detail-delete" id="detailDeleteBtn">🗑️ 删除此条目</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   1. IndexedDB
+============================================================ */
+const DB_NAME='DentalKB', STORE_NAME='entries';
+let db=null;
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME,1);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains(STORE_NAME)){
+        const s=d.createObjectStore(STORE_NAME,{keyPath:'id'});
+        s.createIndex('category','category',{unique:false});
+        s.createIndex('tags','tags',{unique:false,multiEntry:true});
+        s.createIndex('type','type',{unique:false});
+      }
+    };
+    req.onsuccess=e=>resolve(e.target.result);
+    req.onerror=e=>reject(e.target.error);
+  });
+}
+function dbAdd(e){return new Promise((res,rej)=>{const t=db.transaction(STORE_NAME,'readwrite');const s=t.objectStore(STORE_NAME);const r=s.add(e);r.onsuccess=()=>res(e);r.onerror=()=>rej(r.error);});}
+function dbUpdate(e){return new Promise((res,rej)=>{const t=db.transaction(STORE_NAME,'readwrite');const s=t.objectStore(STORE_NAME);const r=s.put(e);r.onsuccess=()=>res(e);r.onerror=()=>rej(r.error);});}
+function dbDelete(id){return new Promise((res,rej)=>{const t=db.transaction(STORE_NAME,'readwrite');const s=t.objectStore(STORE_NAME);const r=s.delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error);});}
+function dbGetAll(){return new Promise((res,rej)=>{const t=db.transaction(STORE_NAME,'readonly');const s=t.objectStore(STORE_NAME);const r=s.getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function dbGetById(id){return new Promise((res,rej)=>{const t=db.transaction(STORE_NAME,'readonly');const s=t.objectStore(STORE_NAME);const r=s.get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+
+/* ============================================================
+   2. 文件保存（File System Access API + 降级下载）
+============================================================ */
+let fileHandle=null;
+let autoSaveTimer=null;
+
+function updateSaveStatus(msg,ok){
+  const el=document.getElementById('saveStatus');
+  if(!el)return;
+  el.textContent=msg;
+  el.style.color=ok?'#10b981':'#64748b';
+}
+
+async function pickAndSaveFile(){
+  if(!window.showSaveFilePicker){
+    updateSaveStatus('浏览器不支持自动保存，已使用下载方式');
+    downloadBackup();
+    return;
+  }
+  try{
+    fileHandle=await window.showSaveFilePicker({
+      suggestedName:`dental_kb_${new Date().toISOString().slice(0,10)}.json`,
+      types:[{description:'JSON 备份',accept:{'application/json':['.json']}}]
+    });
+    await writeToFile(true);
+  }catch(e){
+    if(e.name!=='AbortError')console.error(e);
+  }
+}
+
+async function writeToFile(manual){
+  if(!fileHandle){
+    if(manual)downloadBackup();
+    return;
+  }
+  try{
+    const data=await dbGetAll();
+    const text=JSON.stringify(data,null,2);
+    const writable=await fileHandle.createWritable();
+    await writable.write(text);
+    await writable.close();
+    updateSaveStatus('✅ 已保存 · '+new Date().toLocaleTimeString(),true);
+  }catch(e){
+    console.error('写文件失败',e);
+    fileHandle=null;
+    updateSaveStatus('❌ 文件句柄失效，请重新点击保存',false);
+  }
+}
+
+function scheduleAutoSave(){
+  if(!fileHandle)return;
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer=setTimeout(()=>writeToFile(false),1500);
+}
+
+function downloadBackup(){
+  dbGetAll().then(data=>{
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`dental_kb_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    updateSaveStatus('已下载备份文件',true);
+  });
+}
+
+document.getElementById('saveToFileBtn').addEventListener('click',pickAndSaveFile);
+
+/* ============================================================
+   3. 输入框自动增高
+============================================================ */
+function autoResizeAll(scope){
+  const root=scope||document;
+  root.querySelectorAll('textarea').forEach(ta=>{
+    ta.style.height='auto';
+    ta.style.height=Math.max(80,ta.scrollHeight)+'px';
+  });
+}
+document.addEventListener('input',function(e){
+  if(e.target.tagName==='TEXTAREA'){
+    e.target.style.height='auto';
+    e.target.style.height=Math.max(80,e.target.scrollHeight)+'px';
+  }
+});
+
+/* ============================================================
+   4. 分类管理 + 排序
+============================================================ */
+const CUSTOM_CATEGORIES_KEY='dental_custom_categories';
+const CATEGORY_ORDER_KEY='dental_category_order';
+
+function loadCustomCategories(){const s=localStorage.getItem(CUSTOM_CATEGORIES_KEY);if(s){try{return JSON.parse(s);}catch(e){return[];}}return[];}
+function saveCustomCategories(c){localStorage.setItem(CUSTOM_CATEGORIES_KEY,JSON.stringify(c));}
+function loadCategoryOrder(){const s=localStorage.getItem(CATEGORY_ORDER_KEY);if(s){try{return JSON.parse(s);}catch(e){return[];}}return[];}
+function saveCategoryOrder(o){localStorage.setItem(CATEGORY_ORDER_KEY,JSON.stringify(o));}
+
+function getAllCategories(entries){
+  const fromEntries=new Set();
+  entries.forEach(e=>{if(e.category)fromEntries.add(e.category);});
+  const custom=loadCustomCategories();
+  const all=new Set([...fromEntries,...custom]);
+  return Array.from(all).sort();
+}
+function getSortedCategories(entries){
+  const all=getAllCategories(entries);
+  const order=loadCategoryOrder();
+  const orderSet=new Set(order);
+  const sorted=[];
+  order.forEach(c=>{if(all.includes(c))sorted.push(c);});
+  const rest=all.filter(c=>!orderSet.has(c)).sort();
+  rest.forEach(c=>sorted.push(c));
+  return sorted;
+}
+
+function getCardOrderKey(viewMode,category){
+  if(viewMode==='all')return 'dental_card_order_all';
+  if(viewMode==='category')return `dental_card_order_cat_${category}`;
+  return null;
+}
+function loadCardOrder(key){const s=localStorage.getItem(key);if(s){try{return JSON.parse(s);}catch(e){return[];}}return[];}
+function saveCardOrder(key,order){localStorage.setItem(key,JSON.stringify(order));}
+function sortCardsByOrder(cards,orderKey){
+  const order=loadCardOrder(orderKey);
+  if(order.length===0)return cards;
+  const map={};cards.forEach(c=>{map[c.id]=c;});
+  const result=[];
+  order.forEach(id=>{if(map[id]){result.push(map[id]);delete map[id];}});
+  Object.values(map).forEach(c=>result.push(c));
+  return result;
+}
+
+/* ============================================================
+   5. 全局状态
+============================================================ */
+let allEntries=[];
+let viewMode='all';
+let currentFilterCat='all';
+let subTypeFilter='all';
+let currentFilterTag=null;
+let editingId=null;
+let editingCaseId=null;
+let editingDiffId=null;
+let tempImages=[];
+let tempCaseImages=[];
+let extraFields=[];
+let diffDiseases=[];
+let diffDimensions=[];
+let currentDetailId=null;
+
+const DIFF_TEMPLATES = {
+  pulp: ['疼痛性质','疼痛定位','冷热刺激','叩诊','牙髓活力','X线表现'],
+  perio: ['牙龈出血','牙周袋深度','附着丧失','牙槽骨吸收','牙齿松动度'],
+  mucosa: ['好发部位','形态','颜色','疼痛','癌变风险'],
+  infection: ['红肿热痛','张口度','发热','白细胞','X线/CT']
+};
+
+/* ============================================================
+   6. DOM
+============================================================ */
+const viewContainer=document.getElementById('viewContainer');
+const categoryList=document.getElementById('categoryList');
+const tagCloud=document.getElementById('tagCloud');
+const totalCount=document.getElementById('totalCount');
+const caseCount=document.getElementById('caseCount');
+const diffCount=document.getElementById('diffCount');
+const allCount=document.getElementById('allCount');
+const diffEntry=document.getElementById('diffEntry');
+
+const formModal=document.getElementById('formModal');
+const caseModal=document.getElementById('caseModal');
+const diffModal=document.getElementById('diffModal');
+const newCategoryModal=document.getElementById('newCategoryModal');
+const renameModal=document.getElementById('renameModal');
+const detailModal=document.getElementById('detailModal');
+
+const RENAME_KEY='dental_kb_name';
+function loadKbName(){return localStorage.getItem(RENAME_KEY)||'DentalKB';}
+function saveKbName(n){localStorage.setItem(RENAME_KEY,n);updateKbNameDisplay();}
+function updateKbNameDisplay(){document.getElementById('logoTitle').innerHTML=`🦷 <span>${loadKbName()}</span> <span class="edit-icon">✎</span>`;}
+document.getElementById('logoTitle').addEventListener('click',()=>{document.getElementById('renameInput').value=loadKbName();renameModal.classList.add('show');});
+document.getElementById('closeRenameBtn').addEventListener('click',()=>renameModal.classList.remove('show'));
+document.getElementById('saveRenameBtn').addEventListener('click',()=>{const n=document.getElementById('renameInput').value.trim();if(n){saveKbName(n);renameModal.classList.remove('show');}});
+renameModal.addEventListener('click',e=>{if(e.target===renameModal)renameModal.classList.remove('show');});
+updateKbNameDisplay();
+
+/* ============================================================
+   7. 渲染主函数
+============================================================ */
+function render(){
+  updateSidebar();
+  if(viewMode==='all')renderAllView();
+  else if(viewMode==='category')renderCategoryView();
+  else if(viewMode==='differential')renderDifferentialView();
+}
+
+function updateSidebar(){
+  totalCount.textContent=allEntries.length;
+  caseCount.textContent=allEntries.filter(e=>e.type==='case').length;
+  diffCount.textContent=allEntries.filter(e=>e.type==='comparison').length;
+
+  const sortedCats=getSortedCategories(allEntries);
+  const catMap={};
+  allEntries.forEach(e=>{catMap[e.category]=(catMap[e.category]||0)+1;});
+  const custom=loadCustomCategories();
+  custom.forEach(c=>{if(!(c in catMap))catMap[c]=0;});
+
+  let html=`<li data-cat="all" class="${viewMode==='all'&&currentFilterCat==='all'?'active':''}" draggable="false">全部 <span class="count">${allEntries.length}</span></li>`;
+  sortedCats.forEach(c=>{
+    const active=(viewMode==='category'&&currentFilterCat===c)?'active':'';
+    html+=`<li data-cat="${c}" class="${active}" draggable="true">${c} <span class="count">${catMap[c]||0}</span>
+      <span class="action-btns">
+        <button class="kb-btn" data-cat="${c}" title="新增知识点">＋</button>
+        <button class="case-btn" data-cat="${c}" title="新增病例">📋</button>
+      </span></li>`;
+  });
+  categoryList.innerHTML=html;
+
+  setupCategoryDragDrop();
+
+  document.querySelectorAll('.kb-btn').forEach(b=>b.addEventListener('click',function(e){e.stopPropagation();openAddForm(this.dataset.cat);}));
+  document.querySelectorAll('.case-btn').forEach(b=>b.addEventListener('click',function(e){e.stopPropagation();openCaseForm(this.dataset.cat);}));
+
+  const tagMap={};
+  allEntries.forEach(e=>{if(e.tags)e.tags.forEach(t=>{tagMap[t]=(tagMap[t]||0)+1;});});
+  let tagHtml='';
+  Object.keys(tagMap).sort((a,b)=>tagMap[b]-tagMap[a]).slice(0,15).forEach(t=>{
+    const active=(currentFilterTag===t&&viewMode==='all')?'active':'';
+    tagHtml+=`<span class="tag-item ${active}" data-tag="${t}">${t} (${tagMap[t]})</span>`;
+  });
+  tagCloud.innerHTML=tagHtml||'<span style="font-size:.8rem;color:#94a3b8;">暂无标签</span>';
+
+  const catOptions=sortedCats;
+  document.getElementById('catSuggest').innerHTML=catOptions.map(c=>`<option value="${c}">`).join('');
+  document.getElementById('catSuggest2').innerHTML=catOptions.map(c=>`<option value="${c}">`).join('');
+  document.getElementById('catSuggest3').innerHTML=catOptions.map(c=>`<option value="${c}">`).join('');
+
+  if(viewMode==='differential')diffEntry.classList.add('active');
+  else diffEntry.classList.remove('active');
+}
+
+function setupCategoryDragDrop(){
+  const items=categoryList.querySelectorAll('li[data-cat]');
+  let dragItem=null;
+  items.forEach(item=>{
+    item.addEventListener('dragstart',function(e){
+      if(this.dataset.cat==='all'){e.preventDefault();return;}
+      dragItem=this;this.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',this.dataset.cat);
+    });
+    item.addEventListener('dragend',function(){this.classList.remove('dragging');document.querySelectorAll('.category-list li').forEach(li=>li.classList.remove('drag-over'));});
+    item.addEventListener('dragover',function(e){e.preventDefault();if(!dragItem||dragItem===this)return;this.classList.add('drag-over');});
+    item.addEventListener('dragleave',function(){this.classList.remove('drag-over');});
+    item.addEventListener('drop',function(e){
+      e.preventDefault();this.classList.remove('drag-over');
+      if(!dragItem||dragItem===this)return;
+      const from=dragItem.dataset.cat,to=this.dataset.cat;
+      if(from==='all'||to==='all')return;
+      const order=loadCategoryOrder();
+      let newOrder=order.filter(c=>c!==from);
+      const idx=newOrder.indexOf(to);
+      if(idx===-1)newOrder.push(from);
+      else newOrder.splice(idx,0,from);
+      saveCategoryOrder(newOrder);
+      render();
+    });
+  });
+}
+
+function renderAllView(){
+  const keyword=document.getElementById('searchInput')?document.getElementById('searchInput').value.trim().toLowerCase():'';
+  let filtered=allEntries;
+  if(currentFilterCat!=='all')filtered=filtered.filter(e=>e.category===currentFilterCat);
+  if(currentFilterTag)filtered=filtered.filter(e=>e.tags&&e.tags.includes(currentFilterTag));
+  if(keyword){
+    filtered=filtered.filter(e=>
+      e.title.toLowerCase().includes(keyword)||
+      (e.summary&&e.summary.toLowerCase().includes(keyword))||
+      (e.detail&&e.detail.toLowerCase().includes(keyword))||
+      (e.tags&&e.tags.some(t=>t.toLowerCase().includes(keyword)))||
+      (e.type==='case'&&e.caseData&&(
+        (e.caseData.chiefComplaint||'').toLowerCase().includes(keyword)||
+        (e.caseData.inquiry||'').toLowerCase().includes(keyword)||
+        (e.caseData.examination||'').toLowerCase().includes(keyword)||
+        (e.caseData.diagnosisThinking||'').toLowerCase().includes(keyword)||
+        (e.caseData.referenceAnswer||'').toLowerCase().includes(keyword)
+      ))||
+      (e.type==='comparison'&&e.diseases&&e.diseases.some(d=>d.toLowerCase().includes(keyword)))
+    );
+  }
+  const orderKey=getCardOrderKey('all',null);
+  filtered=sortCardsByOrder(filtered,orderKey);
+
+  viewContainer.innerHTML=`
+    <div class="top-bar">
+      <div class="search-wrap"><span class="icon">🔍</span><input type="text" id="searchInput" placeholder="搜索标题、标签、主诉、疾病..." value="${keyword}" /></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-primary" id="openAddBtn">+ 知识点</button>
+        <button class="btn-case" id="openCaseBtn">📋 病例</button>
+        <button class="btn-diff" id="openDiffBtn">🔬 鉴别诊断</button>
+      </div>
+    </div>
+    <div class="grid" id="cardGrid"></div>
+  `;
+
+  document.getElementById('searchInput').addEventListener('input',render);
+  document.getElementById('openAddBtn').addEventListener('click',()=>openAddForm(''));
+  document.getElementById('openCaseBtn').addEventListener('click',()=>openCaseForm(''));
+  document.getElementById('openDiffBtn').addEventListener('click',()=>openDiffForm(''));
+
+  const grid=document.getElementById('cardGrid');
+  if(filtered.length===0){grid.innerHTML='<div class="no-result">😕 没有找到匹配的条目</div>';return;}
+  grid.innerHTML=filtered.map(entry=>renderCard(entry)).join('');
+  bindCardClicks();
+  setupCardDragDrop(grid,'all',null);
+  allCount.textContent=allEntries.length;
+}
+
+function renderCategoryView(){
+  const cat=currentFilterCat;
+  if(cat==='all'){viewMode='all';render();return;}
+
+  let items=allEntries.filter(e=>e.category===cat);
+  if(subTypeFilter==='knowledge')items=items.filter(e=>e.type==='knowledge');
+  else if(subTypeFilter==='case')items=items.filter(e=>e.type==='case');
+  else if(subTypeFilter==='comparison')items=items.filter(e=>e.type==='comparison');
+
+  const orderKey=getCardOrderKey('category',cat);
+  items=sortCardsByOrder(items,orderKey);
+
+  const total=allEntries.filter(e=>e.category===cat).length;
+  const kbCount=allEntries.filter(e=>e.category===cat&&e.type==='knowledge').length;
+  const caseCnt=allEntries.filter(e=>e.category===cat&&e.type==='case').length;
+  const diffCnt=allEntries.filter(e=>e.category===cat&&e.type==='comparison').length;
+
+  viewContainer.innerHTML=`
+    <div class="category-detail-header">
+      <div class="top-row">
+        <button class="back-btn" id="backToAllBtn">← 返回全部</button>
+        <span class="cat-title">📂 ${cat}</span>
+        <span class="cat-count">（共 ${total} 条）</span>
+        <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-primary" id="addKbInCat">+ 知识点</button>
+          <button class="btn-case" id="addCaseInCat">📋 病例</button>
+          <button class="btn-diff" id="addDiffInCat">🔬 鉴别</button>
+        </div>
+      </div>
+      <div class="sub-tabs">
+        <button class="tab-btn ${subTypeFilter==='all'?'active':''}" data-sub="all">全部 (${total})</button>
+        <button class="tab-btn ${subTypeFilter==='knowledge'?'active':''}" data-sub="knowledge">📖 知识点 (${kbCount})</button>
+        <button class="tab-btn ${subTypeFilter==='case'?'active':''}" data-sub="case">📋 病例 (${caseCnt})</button>
+        <button class="tab-btn ${subTypeFilter==='comparison'?'active':''}" data-sub="comparison">🔬 鉴别 (${diffCnt})</button>
+      </div>
+    </div>
+    <div class="grid" id="categoryCardGrid"></div>
+  `;
+
+  document.getElementById('backToAllBtn').addEventListener('click',()=>{viewMode='all';currentFilterCat='all';subTypeFilter='all';render();});
+  document.getElementById('addKbInCat').addEventListener('click',()=>openAddForm(cat));
+  document.getElementById('addCaseInCat').addEventListener('click',()=>openCaseForm(cat));
+  document.getElementById('addDiffInCat').addEventListener('click',()=>openDiffForm(cat));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',function(){subTypeFilter=this.dataset.sub;render();}));
+
+  const grid=document.getElementById('categoryCardGrid');
+  if(items.length===0){grid.innerHTML='<div class="no-result">😕 该分类下暂无此类型条目</div>';return;}
+  grid.innerHTML=items.map(entry=>renderCard(entry)).join('');
+  bindCardClicks();
+  setupCardDragDrop(grid,'category',cat);
+}
+
+function renderCard(entry){
+  const isCase=entry.type==='case';
+  const isDiff=entry.type==='comparison';
+  let typeLabel='📖 知识点',typeClass='knowledge';
+  if(isCase){typeLabel='📋 真实病例';typeClass='case';}
+  if(isDiff){typeLabel='🔬 鉴别诊断';typeClass='comparison';}
+  let summaryText=entry.summary||'暂无定义';
+  if(isCase&&entry.caseData&&entry.caseData.chiefComplaint)summaryText='主诉：'+entry.caseData.chiefComplaint;
+  if(isDiff&&entry.diseases)summaryText='对比：'+entry.diseases.join(' vs ');
+  const tagHtml=entry.tags?entry.tags.map(t=>`<span>#${t}</span>`).join(''):'';
+  const imgInd=(entry.images&&entry.images.length>0)?'📷 有图片':'';
+  return `<div class="card" data-id="${entry.id}" draggable="true">
+    <span class="card-type ${typeClass}">${typeLabel}</span>
+    <span class="card-cat">${entry.category}</span>
+    <h3>${entry.title}</h3>
+    <div class="card-summary">${summaryText}</div>
+    <div class="card-tags">${tagHtml}</div>
+    <div class="card-footer">
+      <span>${new Date(entry.updatedAt||entry.createdAt).toLocaleDateString()}</span>
+      <span>${imgInd}</span>
+    </div>
+  </div>`;
+}
+
+function bindCardClicks(){
+  document.querySelectorAll('.card').forEach(el=>{
+    el.addEventListener('click',function(){
+      if(this.classList.contains('dragging'))return;
+      openDetail(this.dataset.id);
+    });
+  });
+}
+
+function setupCardDragDrop(grid,viewMode,category){
+  let dragItem=null;
+  grid.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('dragstart',function(e){
+      dragItem=this;this.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',this.dataset.id);
+    });
+    card.addEventListener('dragend',function(){this.classList.remove('dragging');grid.querySelectorAll('.card').forEach(c=>c.classList.remove('drag-over'));});
+    card.addEventListener('dragover',function(e){e.preventDefault();if(!dragItem||dragItem===this)return;this.classList.add('drag-over');});
+    card.addEventListener('dragleave',function(){this.classList.remove('drag-over');});
+    card.addEventListener('drop',function(e){
+      e.preventDefault();this.classList.remove('drag-over');
+      if(!dragItem||dragItem===this)return;
+      const all=grid.querySelectorAll('.card');
+      const ids=Array.from(all).map(el=>el.dataset.id);
+      const from=dragItem.dataset.id,to=this.dataset.id;
+      const fi=ids.indexOf(from),ti=ids.indexOf(to);
+      if(fi===-1||ti===-1)return;
+      ids.splice(fi,1);ids.splice(ti,0,from);
+      const key=getCardOrderKey(viewMode,category);
+      if(key)saveCardOrder(key,ids);
+      render();
+    });
+  });
+}
+
+function renderDifferentialView(){
+  const diffs=allEntries.filter(e=>e.type==='comparison');
+  viewContainer.innerHTML=`
+    <div class="top-bar">
+      <div class="search-wrap"><span class="icon">🔍</span><input type="text" id="diffSearchInput" placeholder="搜索对比组..." /></div>
+      <button class="btn-diff" id="openDiffBtn2">🔬 新增对比组</button>
+    </div>
+    <div class="grid" id="diffGrid"></div>
+  `;
+  document.getElementById('openDiffBtn2').addEventListener('click',()=>openDiffForm(''));
+  document.getElementById('diffSearchInput').addEventListener('input',function(){
+    const kw=this.value.trim().toLowerCase();
+    const filtered=diffs.filter(d=>d.title.toLowerCase().includes(kw)||(d.diseases&&d.diseases.some(x=>x.toLowerCase().includes(kw))));
+    renderDiffCards(filtered);
+  });
+  renderDiffCards(diffs);
+
+  function renderDiffCards(list){
+    const grid=document.getElementById('diffGrid');
+    if(list.length===0){grid.innerHTML='<div class="no-result">😕 还没有对比组，点击上方按钮创建吧</div>';return;}
+    grid.innerHTML=list.map(entry=>renderCard(entry)).join('');
+    bindCardClicks();
+  }
+}
+
+/* ============================================================
+   8. 详情
+============================================================ */
+async function openDetail(id){
+  const entry=await dbGetById(id);
+  if(!entry)return;
+  currentDetailId=id;
+  const isCase=entry.type==='case';
+  const isDiff=entry.type==='comparison';
+  detailType.textContent=isCase?'📋 真实病例':isDiff?'🔬 鉴别诊断':'📖 知识点';
+  detailType.className='detail-type '+(isCase?'case':isDiff?'comparison':'knowledge');
+  detailCategory.textContent=entry.category;
+  detailTitle.textContent=entry.title;
+
+  if(isCase){
+    detailBody.innerHTML='';
+    caseModulesContainer.style.display='block';
+    comparisonContainer.style.display='none';
+    const cd=entry.caseData||{};
+    detailChiefComplaint.textContent=cd.chiefComplaint||'';
+    detailInquiry.textContent=cd.inquiry||'';
+    detailExamination.textContent=cd.examination||'';
+    detailDiagnosisThinking.textContent=cd.diagnosisThinking||'';
+    detailReferenceAnswer.textContent=cd.referenceAnswer||'';
+    let imgHtml='';
+    if(entry.images&&entry.images.length>0)imgHtml=entry.images.map(i=>`<img src="${i}" />`).join('');
+    detailBody.innerHTML=imgHtml;
+    let extra='';
+    if(cd.extraFields&&cd.extraFields.length>0)cd.extraFields.forEach(f=>{extra+=`<div class="extra-item"><div class="extra-key">${f.key}</div><div class="extra-value">${f.value}</div></div>`;});
+    detailExtraFields.innerHTML=extra||'<span style="color:#94a3b8;">无额外字段</span>';
+  }else if(isDiff){
+    caseModulesContainer.style.display='none';
+    comparisonContainer.style.display='block';
+    let imgHtml='';
+    if(entry.images&&entry.images.length>0)imgHtml=entry.images.map(i=>`<img src="${i}" />`).join('');
+    detailBody.innerHTML=imgHtml;
+    let table='<table class="diff-table"><thead><tr><th>对比维度</th>';
+    (entry.diseases||[]).forEach(d=>{table+=`<th>${d}</th>`;});
+    table+='</tr></thead><tbody>';
+    (entry.dimensions||[]).forEach(dim=>{
+      table+=`<tr><td>${dim.name}</td>`;
+      (dim.values||[]).forEach(v=>{table+=`<td>${v}</td>`;});
+      table+='</tr>';
+    });
+    table+='</tbody></table>';
+    if(entry.notes)table+=`<p style="margin-top:12px;color:#475569;"><strong>临床要点：</strong>${entry.notes}</p>`;
+    document.getElementById('diffTableWrap').innerHTML=table;
+  }else{
+    caseModulesContainer.style.display='none';
+    comparisonContainer.style.display='none';
+    let body=marked.parse(entry.detail||'暂无详细内容');
+    if(entry.images&&entry.images.length>0)body=entry.images.map(i=>`<img src="${i}" />`).join('')+body;
+    detailBody.innerHTML=body;
+  }
+  detailTags.innerHTML=entry.tags?entry.tags.map(t=>`<span>#${t}</span>`).join(''):'无标签';
+  detailModal.classList.add('show');
+}
+function closeDetail(){detailModal.classList.remove('show');currentDetailId=null;}
+
+/* ============================================================
+   9. 知识点表单
+============================================================ */
+const inputTitle=document.getElementById('inputTitle');
+const inputCategory=document.getElementById('inputCategory');
+const inputTags=document.getElementById('inputTags');
+const inputSummary=document.getElementById('inputSummary');
+const inputDetail=document.getElementById('inputDetail');
+const imageFileInput=document.getElementById('imageFileInput');
+const imagePreviewContainer=document.getElementById('imagePreviewContainer');
+
+function resetForm(){
+  inputTitle.value='';inputCategory.value='';inputTags.value='';inputSummary.value='';inputDetail.value='';
+  imagePreviewContainer.innerHTML='';tempImages=[];imageFileInput.value='';editingId=null;
+  document.getElementById('formTitle').textContent='📝 新增知识点';
+}
+function openAddForm(cat){resetForm();if(cat)inputCategory.value=cat;formModal.classList.add('show');setTimeout(()=>autoResizeAll(formModal),50);}
+async function openEditForm(id){
+  const e=await dbGetById(id);if(!e)return;
+  resetForm();editingId=id;
+  document.getElementById('formTitle').textContent='✏️ 编辑知识点';
+  inputTitle.value=e.title||'';inputCategory.value=e.category||'';
+  inputTags.value=e.tags?e.tags.join(', '):'';inputSummary.value=e.summary||'';inputDetail.value=e.detail||'';
+  if(e.images&&e.images.length>0){tempImages=[...e.images];tempImages.forEach(src=>{const img=document.createElement('img');img.src=src;img.className='preview-img';img.style.width='60px';img.style.height='60px';img.style.objectFit='cover';img.style.borderRadius='8px';img.style.border='1px solid #e2e8f0';imagePreviewContainer.appendChild(img);});}
+  formModal.classList.add('show');
+  setTimeout(()=>autoResizeAll(formModal),50);
+}
+function closeForm(){formModal.classList.remove('show');}
+imageFileInput.addEventListener('change',function(){
+  for(let f of this.files){const r=new FileReader();r.onload=ev=>{tempImages.push(ev.target.result);const img=document.createElement('img');img.src=ev.target.result;img.className='preview-img';img.style.width='60px';img.style.height='60px';img.style.objectFit='cover';img.style.borderRadius='8px';img.style.border='1px solid #e2e8f0';imagePreviewContainer.appendChild(img);};r.readAsDataURL(f);}
+  this.value='';
+});
+document.getElementById('saveEntryBtn').addEventListener('click',async()=>{
+  const title=inputTitle.value.trim(),category=inputCategory.value.trim(),tagsRaw=inputTags.value.trim();
+  const summary=inputSummary.value.trim()||'暂无定义',detail=inputDetail.value.trim()||'暂无详细内容';
+  if(!title||!category){alert('请填写标题和分类！');return;}
+  const tags=tagsRaw?tagsRaw.split(',').map(s=>s.trim()).filter(s=>s):[];
+  const now=new Date().toISOString();
+  if(editingId){const old=await dbGetById(editingId);if(!old)return;await dbUpdate({...old,title,category,tags,summary,detail,images:tempImages.length>0?tempImages:old.images||[],updatedAt:now});}
+  else await dbAdd({id:Date.now().toString(36)+Math.random().toString(36).substr(2,6),type:'knowledge',title,category,tags,summary,detail,images:tempImages,createdAt:now,updatedAt:now});
+  closeForm();await refreshData();
+});
+
+/* ============================================================
+   10. 病例表单
+============================================================ */
+const caseTitle=document.getElementById('caseTitle');
+const caseCategory=document.getElementById('caseCategory');
+const caseTags=document.getElementById('caseTags');
+const caseChiefComplaint=document.getElementById('caseChiefComplaint');
+const caseInquiry=document.getElementById('caseInquiry');
+const caseExamination=document.getElementById('caseExamination');
+const caseDiagnosisThinking=document.getElementById('caseDiagnosisThinking');
+const caseReferenceAnswer=document.getElementById('caseReferenceAnswer');
+const caseImageInput=document.getElementById('caseImageInput');
+const caseImagePreview=document.getElementById('caseImagePreview');
+const extraFieldsContainer=document.getElementById('extraFieldsContainer');
+
+function resetCaseForm(){
+  caseTitle.value='';caseCategory.value='';caseTags.value='';
+  caseChiefComplaint.value='';caseInquiry.value='';caseExamination.value='';caseDiagnosisThinking.value='';caseReferenceAnswer.value='';
+  caseImagePreview.innerHTML='';tempCaseImages=[];caseImageInput.value='';
+  extraFields=[];extraFieldsContainer.innerHTML='';editingCaseId=null;
+  document.getElementById('caseFormTitle').textContent='📋 新增真实病例';
+}
+function openCaseForm(cat){resetCaseForm();if(cat)caseCategory.value=cat;caseModal.classList.add('show');setTimeout(()=>autoResizeAll(caseModal),50);}
+async function openEditCaseForm(id){
+  const e=await dbGetById(id);if(!e||e.type!=='case')return;
+  resetCaseForm();editingCaseId=id;
+  document.getElementById('caseFormTitle').textContent='✏️ 编辑真实病例';
+  caseTitle.value=e.title||'';caseCategory.value=e.category||'';caseTags.value=e.tags?e.tags.join(', '):'';
+  const cd=e.caseData||{};
+  caseChiefComplaint.value=cd.chiefComplaint||'';caseInquiry.value=cd.inquiry||'';
+  caseExamination.value=cd.examination||'';caseDiagnosisThinking.value=cd.diagnosisThinking||'';caseReferenceAnswer.value=cd.referenceAnswer||'';
+  if(e.images&&e.images.length>0){tempCaseImages=[...e.images];tempCaseImages.forEach(src=>{const img=document.createElement('img');img.src=src;img.className='preview-img';img.style.width='60px';img.style.height='60px';img.style.objectFit='cover';img.style.borderRadius='8px';img.style.border='1px solid #e2e8f0';caseImagePreview.appendChild(img);});}
+  if(cd.extraFields&&cd.extraFields.length>0){extraFields=cd.extraFields.map(f=>({...f}));renderExtraFields();}
+  caseModal.classList.add('show');
+  setTimeout(()=>autoResizeAll(caseModal),50);
+}
+function closeCaseForm(){caseModal.classList.remove('show');}
+caseImageInput.addEventListener('change',function(){
+  for(let f of this.files){const r=new FileReader();r.onload=ev=>{tempCaseImages.push(ev.target.result);const img=document.createElement('img');img.src=ev.target.result;img.className='preview-img';img.style.width='60px';img.style.height='60px';img.style.objectFit='cover';img.style.borderRadius='8px';img.style.border='1px solid #e2e8f0';caseImagePreview.appendChild(img);};r.readAsDataURL(f);}
+  this.value='';
+});
+document.getElementById('addExtraFieldBtn').addEventListener('click',function(){
+  extraFields.push({key:'',value:''});renderExtraFields();
+});
+function renderExtraFields(){
+  extraFieldsContainer.innerHTML='';
+  extraFields.forEach((f,idx)=>{
+    const div=document.createElement('div');div.className='extra-item';div.dataset.index=idx;
+    div.innerHTML=`<input type="text" class="extra-key" placeholder="字段名" value="${f.key}" /><input type="text" class="extra-value" placeholder="字段值" value="${f.value}" /><button class="remove-row-btn">✕</button>`;
+    extraFieldsContainer.appendChild(div);
+    div.querySelector('.remove-row-btn').addEventListener('click',()=>{extraFields.splice(idx,1);renderExtraFields();});
+    div.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',function(){
+      const i=parseInt(this.closest('.extra-item').dataset.index);
+      if(this.classList.contains('extra-key'))extraFields[i].key=this.value;
+      else extraFields[i].value=this.value;
+    }));
+  });
+}
+document.getElementById('saveCaseBtn').addEventListener('click',async()=>{
+  const title=caseTitle.value.trim(),category=caseCategory.value.trim(),tagsRaw=caseTags.value.trim();
+  const cc=caseChiefComplaint.value.trim(),inq=caseInquiry.value.trim(),exa=caseExamination.value.trim();
+  const dt=caseDiagnosisThinking.value.trim(),ra=caseReferenceAnswer.value.trim();
+  if(!title||!category){alert('请填写标题和分类！');return;}
+  const tags=tagsRaw?tagsRaw.split(',').map(s=>s.trim()).filter(s=>s):[];
+  const extra=extraFields.filter(f=>f.key.trim()&&f.value.trim());
+  const now=new Date().toISOString();
+  if(editingCaseId){
+    const old=await dbGetById(editingCaseId);if(!old)return;
+    await dbUpdate({...old,title,category,tags,summary:cc||'暂无主诉',images:tempCaseImages.length>0?tempCaseImages:old.images||[],caseData:{chiefComplaint:cc,inquiry:inq,examination:exa,diagnosisThinking:dt,referenceAnswer:ra,extraFields:extra},updatedAt:now});
+  }else{
+    await dbAdd({id:Date.now().toString(36)+Math.random().toString(36).substr(2,6),type:'case',title,category,tags,summary:cc||'暂无主诉',detail:'',images:tempCaseImages,caseData:{chiefComplaint:cc,inquiry:inq,examination:exa,diagnosisThinking:dt,referenceAnswer:ra,extraFields:extra},createdAt:now,updatedAt:now});
+  }
+  closeCaseForm();await refreshData();
+});
+
+/* ============================================================
+   11. 鉴别诊断表单
+============================================================ */
+const diffTitle=document.getElementById('diffTitle');
+const diffCategory=document.getElementById('diffCategory');
+const diffTags=document.getElementById('diffTags');
+const diffNotes=document.getElementById('diffNotes');
+const diffDiseasesArea=document.getElementById('diffDiseasesArea');
+const diffDimensionsArea=document.getElementById('diffDimensionsArea');
+const diffTemplateSel=document.getElementById('diffTemplate');
+
+function resetDiffForm(){
+  diffTitle.value='';diffCategory.value='';diffTags.value='';diffNotes.value='';
+  diffDiseases=['',''];diffDimensions=[{name:'',values:['','']}];
+  editingDiffId=null;
+  diffTemplateSel.value='none';
+  document.getElementById('diffFormTitle').textContent='🔬 新增鉴别诊断对比组';
+  renderDiffDiseases();renderDiffDimensions();
+}
+function openDiffForm(cat){resetDiffForm();if(cat)diffCategory.value=cat;diffModal.classList.add('show');setTimeout(()=>autoResizeAll(diffModal),50);}
+function closeDiffForm(){diffModal.classList.remove('show');}
+
+function renderDiffDiseases(){
+  diffDiseasesArea.innerHTML='';
+  diffDiseases.forEach((d,idx)=>{
+    const div=document.createElement('div');div.className='diff-disease-row';div.dataset.index=idx;
+    div.innerHTML=`<input type="text" placeholder="疾病名称 ${idx+1}" value="${d}" /><button class="remove-row-btn">✕</button>`;
+    diffDiseasesArea.appendChild(div);
+    div.querySelector('input').addEventListener('input',function(){diffDiseases[idx]=this.value;updateDimensionValues();});
+    div.querySelector('.remove-row-btn').addEventListener('click',()=>{if(diffDiseases.length<=2){alert('至少保留2个疾病');return;}diffDiseases.splice(idx,1);diffDimensions.forEach(dim=>dim.values.splice(idx,1));renderDiffDiseases();renderDiffDimensions();});
+  });
+}
+function renderDiffDimensions(){
+  diffDimensionsArea.innerHTML='';
+  diffDimensions.forEach((dim,idx)=>{
+    const div=document.createElement('div');div.className='diff-dimension-row';div.dataset.index=idx;
+    let html=`<input type="text" class="dim-name" placeholder="维度名称" value="${dim.name}" />`;
+    diffDiseases.forEach((d,i)=>{
+      html+=`<input type="text" class="dim-value" placeholder="${d||'疾病'+(i+1)}" value="${dim.values[i]||''}" data-disease-index="${i}" />`;
+    });
+    html+=`<button class="remove-row-btn">✕</button>`;
+    div.innerHTML=html;
+    diffDimensionsArea.appendChild(div);
+    div.querySelector('.dim-name').addEventListener('input',function(){diffDimensions[idx].name=this.value;});
+    div.querySelectorAll('.dim-value').forEach(inp=>inp.addEventListener('input',function(){
+      const di=parseInt(this.dataset.diseaseIndex);
+      diffDimensions[idx].values[di]=this.value;
+    }));
+    div.querySelector('.remove-row-btn').addEventListener('click',()=>{diffDimensions.splice(idx,1);renderDiffDimensions();});
+  });
+}
+function updateDimensionValues(){
+  diffDimensions.forEach(dim=>{
+    while(dim.values.length<diffDiseases.length)dim.values.push('');
+    dim.values=dim.values.slice(0,diffDiseases.length);
+  });
+  renderDiffDimensions();
+}
+document.getElementById('addDiseaseBtn').addEventListener('click',()=>{
+  diffDiseases.push('');
+  diffDimensions.forEach(dim=>dim.values.push(''));
+  renderDiffDiseases();renderDiffDimensions();
+});
+document.getElementById('addDimensionBtn').addEventListener('click',()=>{
+  diffDimensions.push({name:'',values:diffDiseases.map(()=>'')});
+  renderDiffDimensions();
+});
+diffTemplateSel.addEventListener('change',function(){
+  const t=this.value;
+  if(t==='none')return;
+  const dims=DIFF_TEMPLATES[t];
+  if(!dims)return;
+  diffDimensions=dims.map(name=>({name:name,values:diffDiseases.map(()=>'')}));
+  renderDiffDimensions();
+});
+document.getElementById('saveDiffBtn').addEventListener('click',async()=>{
+  const title=diffTitle.value.trim(),category=diffCategory.value.trim(),tagsRaw=diffTags.value.trim(),notes=diffNotes.value.trim();
+  if(!title||!category){alert('请填写标题和分类！');return;}
+  if(diffDiseases.filter(d=>d.trim()).length<2){alert('至少需要2个疾病参与对比');return;}
+  const tags=tagsRaw?tagsRaw.split(',').map(s=>s.trim()).filter(s=>s):[];
+  const now=new Date().toISOString();
+  const data={title,category,tags,notes,diseases:diffDiseases.filter(d=>d.trim()),dimensions:diffDimensions.filter(d=>d.name.trim()).map(d=>({name:d.name,values:d.values}))};
+  if(editingDiffId){
+    const old=await dbGetById(editingDiffId);if(!old)return;
+    await dbUpdate({...old,...data,updatedAt:now});
+  }else{
+    await dbAdd({id:Date.now().toString(36)+Math.random().toString(36).substr(2,6),type:'comparison',...data,createdAt:now,updatedAt:now});
+  }
+  closeDiffForm();await refreshData();
+});
+
+/* ============================================================
+   12. 分类新增、删除、备份
+============================================================ */
+document.getElementById('addCategoryBtn').addEventListener('click',()=>{document.getElementById('newCategoryInput').value='';newCategoryModal.classList.add('show');});
+document.getElementById('closeNewCategoryBtn').addEventListener('click',()=>newCategoryModal.classList.remove('show'));
+document.getElementById('saveNewCategoryBtn').addEventListener('click',()=>{
+  const n=document.getElementById('newCategoryInput').value.trim();
+  if(!n){alert('请输入分类名称');return;}
+  const all=getAllCategories(allEntries);
+  if(all.includes(n)){alert('该分类已存在！');return;}
+  const c=loadCustomCategories();c.push(n);saveCustomCategories(c);
+  newCategoryModal.classList.remove('show');refreshData();
+});
+newCategoryModal.addEventListener('click',e=>{if(e.target===newCategoryModal)newCategoryModal.classList.remove('show');});
+
+document.getElementById('detailDeleteBtn').addEventListener('click',async()=>{
+  if(!currentDetailId)return;
+  if(confirm('确定永久删除吗？')){await dbDelete(currentDetailId);closeDetail();await refreshData();}
+});
+
+document.getElementById('exportBtn').addEventListener('click',()=>downloadBackup());
+document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change',async function(){
+  const file=this.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try{
+      const imported=JSON.parse(ev.target.result);
+      if(!Array.isArray(imported))throw new Error('格式错误');
+      const all=await dbGetAll();for(let i of all)await dbDelete(i.id);
+      for(let item of imported){if(!item.id)item.id=Date.now().toString(36)+Math.random().toString(36).substr(2,6);if(!item.createdAt)item.createdAt=new Date().toISOString();if(!item.updatedAt)item.updatedAt=item.createdAt;if(!item.type)item.type='knowledge';await dbAdd(item);}
+      alert('✅ 导入成功！共导入 '+imported.length+' 条数据。');await refreshData();
+      if(fileHandle)await writeToFile(false);
+    }catch(e){alert('❌ 导入失败：文件格式不正确。');}
+  };
+  reader.readAsText(file);this.value='';
+});
+
+categoryList.addEventListener('click',function(e){
+  const li=e.target.closest('li');if(!li)return;
+  if(e.target.closest('.action-btns'))return;
+  const cat=li.dataset.cat;
+  if(cat==='all'){viewMode='all';currentFilterCat='all';subTypeFilter='all';currentFilterTag=null;}
+  else{viewMode='category';currentFilterCat=cat;subTypeFilter='all';currentFilterTag=null;}
+  render();
+});
+diffEntry.addEventListener('click',()=>{viewMode='differential';currentFilterCat='all';currentFilterTag=null;render();});
+
+tagCloud.addEventListener('click',function(e){
+  const span=e.target.closest('.tag-item');if(!span)return;
+  if(viewMode!=='all'){viewMode='all';currentFilterCat='all';currentFilterTag=span.dataset.tag;subTypeFilter='all';render();return;}
+  const t=span.dataset.tag;
+  if(currentFilterTag===t)currentFilterTag=null;else currentFilterTag=t;
+  render();
+});
+
+document.getElementById('closeFormBtn').addEventListener('click',closeForm);
+formModal.addEventListener('click',e=>{if(e.target===formModal)closeForm();});
+document.getElementById('closeCaseBtn').addEventListener('click',closeCaseForm);
+caseModal.addEventListener('click',e=>{if(e.target===caseModal)closeCaseForm();});
+document.getElementById('closeDiffBtn').addEventListener('click',closeDiffForm);
+diffModal.addEventListener('click',e=>{if(e.target===diffModal)closeDiffForm();});
+document.getElementById('closeDetailBtn').addEventListener('click',closeDetail);
+detailModal.addEventListener('click',e=>{if(e.target===detailModal)closeDetail();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeForm();closeCaseForm();closeDiffForm();closeDetail();newCategoryModal.classList.remove('show');renameModal.classList.remove('show');}});
+
+/* 详情里的编辑按钮 */
+const editBtnInDetail=document.createElement('button');
+editBtnInDetail.textContent='✏️ 编辑';
+editBtnInDetail.style.cssText='background:#e0f2fe;color:#0369a1;border:none;padding:8px 20px;border-radius:40px;font-weight:600;cursor:pointer;margin-right:10px;';
+editBtnInDetail.addEventListener('click',async()=>{
+  if(!currentDetailId)return;
+  const e=await dbGetById(currentDetailId);if(!e)return;
+  const id=currentDetailId;closeDetail();
+  if(e.type==='case')setTimeout(()=>openEditCaseForm(id),200);
+  else if(e.type==='comparison')setTimeout(()=>{
+    resetDiffForm();editingDiffId=id;
+    document.getElementById('diffFormTitle').textContent='✏️ 编辑鉴别诊断对比组';
+    diffTitle.value=e.title||'';diffCategory.value=e.category||'';diffTags.value=e.tags?e.tags.join(', '):'';diffNotes.value=e.notes||'';
+    diffDiseases=e.diseases?[...e.diseases]:['',''];
+    diffDimensions=e.dimensions?e.dimensions.map(d=>({name:d.name,values:[...d.values]})):[{name:'',values:['','']}];
+    diffTemplateSel.value='none';
+    renderDiffDiseases();renderDiffDimensions();diffModal.classList.add('show');
+    setTimeout(()=>autoResizeAll(diffModal),50);
+  },200);
+  else setTimeout(()=>openEditForm(id),200);
+});
+const delParent=document.getElementById('detailDeleteBtn').parentNode;
+delParent.insertBefore(editBtnInDetail,document.getElementById('detailDeleteBtn'));
+
+/* ============================================================
+   13. 初始化
+============================================================ */
+async function refreshData(){
+  allEntries=await dbGetAll();
+  let needSave=false;
+  allEntries.forEach(e=>{
+    if(!e.type){e.type='knowledge';needSave=true;}
+    if(e.type==='case'&&!e.caseData){e.caseData={chiefComplaint:'',inquiry:'',examination:'',diagnosisThinking:'',referenceAnswer:'',extraFields:[]};needSave=true;}
+    if(e.type==='knowledge'&&e.caseData){delete e.caseData;needSave=true;}
+  });
+  if(needSave){for(let e of allEntries)await dbUpdate(e);}
+  render();
+  // 数据发生变化 → 触发自动保存到文件
+  scheduleAutoSave();
+}
+async function init(){
+  db=await openDB();
+  const existing=await dbGetAll();
+  if(existing.length===0){
+    const samples=[
+      {id:'demo1',type:'knowledge',title:'龋病（蛀牙）',category:'牙体牙髓学',tags:['细菌感染','充填修复'],summary:'细菌感染导致的牙体硬组织破坏',detail:'**病因**：变形链球菌。\n**分类**：浅龋、中龋、深龋。\n**治疗**：复合树脂充填。',images:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()},
+      {id:'demo2',type:'knowledge',title:'急性牙髓炎',category:'牙体牙髓学',tags:['冷热痛','根管治疗'],summary:'牙髓急性炎症，剧烈自发痛，夜间加重',detail:'**症状**：放射性痛，不能定位。\n**治疗**：开髓减压，根管治疗。',images:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()},
+      {id:'case1',type:'case',title:'下颌第一磨牙慢性根尖周炎',category:'牙体牙髓学',tags:['根尖周炎','X线透射区'],summary:'主诉：左下后牙咬合不适1月',detail:'',images:[],caseData:{chiefComplaint:'左下后牙咬合不适1月，偶有牙龈瘘管',inquiry:'患者1月前感左下后牙咀嚼时不适，无自发痛，冷热刺激无加重，有夜间磨牙史',examination:'叩诊（+），根尖区压痛，X线显示根尖区椭圆形透射影，边界清晰',diagnosisThinking:'慢性根尖周炎，需鉴别根尖囊肿，考虑既往有龋坏史',referenceAnswer:'根管治疗后行根尖囊肿刮治术，定期复查'},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()},
+      {id:'diff1',type:'comparison',title:'急性牙髓炎 vs 急性根尖周炎',category:'牙体牙髓学',tags:['鉴别诊断','疼痛'],diseases:['急性牙髓炎','急性根尖周炎'],dimensions:[{name:'疼痛性质',values:['自发性阵发痛、夜间加重','持续性钝痛、咬合痛']},{name:'疼痛定位',values:['不能定位、放散痛','能定位']},{name:'冷热刺激',values:['激发痛，刺激去除后持续','无反应']},{name:'叩诊',values:['(-)','(+)']},{name:'牙髓活力',values:['敏感或迟钝','无反应']}],notes:'关键鉴别点：急性牙髓炎有自发性痛和冷热刺激痛，不能定位；急性根尖周炎咬合痛明显，能定位，牙髓多无活力。',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}
+    ];
+    for(let s of samples)await dbAdd(s);
+  }
+  await refreshData();
+  console.log('🦷 系统启动成功，自动增高 + 文件自动同步已就绪！');
+}
+init();
+</script>
 </body>
 </html>
