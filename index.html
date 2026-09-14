@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🦷 口腔专业系统</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#f1f5f9; height:100vh; display:flex; color:#0f172a; overflow:hidden; }
+
+.sidebar {
+  width:260px; background:#fff; border-right:1px solid #e2e8f0;
+  padding:16px 14px; display:flex; flex-direction:column;
+  overflow-y:auto; overflow-x:hidden; flex-shrink:0; height:100vh; box-sizing:border-box;
+  transition:left .3s ease;
+}
+.sidebar .logo { font-size:1.4rem; font-weight:700; margin-bottom:2px; cursor:pointer; display:flex; align-items:center; gap:6px; }
+.sidebar .logo:hover { opacity:.7; }
+.sidebar .logo .edit-icon { font-size:.8rem; color:#94a3b8; }
+.sidebar .sub { font-size:.75rem; color:#64748b; margin-bottom:12px; }
+
+.stat-box { background:#f8fafc; border-radius:12px; padding:10px 8px; margin-bottom:12px; display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:4px; }
+.stat-box div { text-align:center; }
+.stat-box .num { font-weight:700; font-size:1.1rem; color:#0f172a; }
+.stat-box .label { font-size:.55rem; color:#64748b; text-transform:uppercase; }
+
+.sidebar h4 { font-size:.72rem; text-transform:uppercase; color:#94a3b8; letter-spacing:.5px; margin:10px 0 6px 0; }
+.category-header { display:flex; justify-content:space-between; align-items:center; margin:10px 0 6px 0; }
+.category-header h4 { margin:0; }
+.category-header .add-cat-btn { background:none; border:1px solid #e2e8f0; border-radius:40px; padding:0 10px; font-size:.75rem; cursor:pointer; color:#3b82f6; line-height:1.8; }
+.category-header .add-cat-btn:hover { background:#eff6ff; border-color:#3b82f6; }
+
+.category-list { list-style:none; margin-bottom:10px; min-height:40px; max-height:220px; overflow-y:auto; padding-right:4px; }
+.category-list li { display:flex; justify-content:space-between; align-items:center; padding:5px 8px; border-radius:8px; cursor:grab; font-size:.85rem; transition:.15s; user-select:none; border:1px solid transparent; }
+.category-list li:active { cursor:grabbing; }
+.category-list li.dragging { opacity:.5; border:1px dashed #3b82f6; }
+.category-list li.drag-over { border-color:#3b82f6; background:#dbeafe; }
+.category-list li:hover { background:#f1f5f9; }
+.category-list li.active { background:#dbeafe; color:#1d4ed8; font-weight:600; }
+.category-list li .count { color:#94a3b8; font-weight:400; font-size:.75rem; }
+.category-list li .action-btns { display:flex; gap:4px; align-items:center; }
+.category-list li .action-btns button { background:none; border:none; font-size:.85rem; cursor:pointer; padding:0 3px; color:#94a3b8; line-height:1; }
+.category-list li .action-btns button:hover { color:#3b82f6; transform:scale(1.2); }
+
+.diff-entry, .file-entry { border-radius:10px; padding:8px 10px; cursor:pointer; font-size:.85rem; font-weight:600; transition:.15s; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+.diff-entry { background:#fef3c7; border:1px solid #fcd34d; color:#92400e; }
+.diff-entry:hover { background:#fde68a; }
+.diff-entry.active { background:#f59e0b; color:#fff; border-color:#f59e0b; }
+.file-entry { background:#dbeafe; border:1px solid #93c5fd; color:#1e40af; }
+.file-entry:hover { background:#bfdbfe; }
+.file-entry.active { background:#3b82f6; color:#fff; border-color:#3b82f6; }
+
+.tag-cloud { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; max-height:120px; overflow-y:auto; }
+.tag-cloud .tag-item { background:#eef2ff; color:#4338ca; padding:2px 12px; border-radius:20px; font-size:.72rem; cursor:pointer; border:1px solid transparent; }
+.tag-cloud .tag-item:hover { background:#c7d2fe; }
+.tag-cloud .tag-item.active { background:#3b82f6; color:#fff; border-color:#3b82f6; }
+
+.backup-area { margin-top:12px; padding-top:12px; border-top:1px solid #e2e8f0; display:flex; flex-direction:column; gap:6px; }
+.backup-area button { width:100%; padding:8px 0; background:#fff; border:1px solid #e2e8f0; border-radius:8px; font-size:.78rem; cursor:pointer; font-weight:500; }
+.backup-area button:hover { background:#f1f5f9; border-color:#94a3b8; }
+.backup-area button.primary { background:#10b981; color:#fff; border-color:#10b981; font-weight:600; }
+.backup-area button.primary:hover { background:#059669; }
+.backup-area .save-status { font-size:.65rem; color:#64748b; text-align:center; margin-top:2px; min-height:1em; }
+#fileInput { display:none; }
+
+.main { flex:1; padding:24px 32px; overflow-y:auto; display:flex; flex-direction:column; height:100vh; }
+
+.top-bar { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; margin-bottom:16px; gap:12px; }
+.top-bar .search-wrap { flex:1; min-width:200px; position:relative; }
+.top-bar .search-wrap input { width:100%; padding:10px 16px 10px 40px; border:1px solid #e2e8f0; border-radius:40px; font-size:.95rem; background:#fff; }
+.top-bar .search-wrap input:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.2); }
+.top-bar .search-wrap .icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; }
+
+.btn-primary { background:#3b82f6; color:#fff; border:none; padding:10px 20px; border-radius:40px; font-weight:600; font-size:.85rem; cursor:pointer; white-space:nowrap; }
+.btn-primary:hover { background:#2563eb; }
+.btn-case { background:#8b5cf6; color:#fff; border:none; padding:10px 20px; border-radius:40px; font-weight:600; font-size:.85rem; cursor:pointer; white-space:nowrap; }
+.btn-case:hover { background:#7c3aed; }
+.btn-diff { background:#f59e0b; color:#fff; border:none; padding:10px 20px; border-radius:40px; font-weight:600; font-size:.85rem; cursor:pointer; white-space:nowrap; }
+.btn-diff:hover { background:#d97706; }
+.btn-paste { background:#10b981; color:#fff; border:none; padding:10px 20px; border-radius:40px; font-weight:600; font-size:.85rem; cursor:pointer; white-space:nowrap; }
+.btn-paste:hover { background:#059669; }
+.btn-file { background:#0ea5e9; color:#fff; border:none; padding:10px 20px; border-radius:40px; font-weight:600; font-size:.85rem; cursor:pointer; white-space:nowrap; }
+.btn-file:hover { background:#0284c7; }
+
+.category-detail-header { display:flex; flex-direction:column; gap:12px; margin-bottom:20px; border-bottom:2px solid #e2e8f0; padding-bottom:16px; }
+.category-detail-header .top-row { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.category-detail-header .top-row .back-btn { background:none; border:1px solid #e2e8f0; border-radius:40px; padding:4px 16px; cursor:pointer; font-size:.85rem; }
+.category-detail-header .top-row .back-btn:hover { background:#f1f5f9; }
+.category-detail-header .top-row .cat-title { font-size:1.4rem; font-weight:700; }
+.category-detail-header .top-row .cat-count { color:#64748b; font-size:.85rem; }
+.category-detail-header .sub-tabs { display:flex; gap:8px; flex-wrap:wrap; }
+.category-detail-header .sub-tabs .tab-btn { padding:6px 18px; border-radius:40px; border:1px solid #e2e8f0; background:#fff; cursor:pointer; font-weight:500; font-size:.85rem; }
+.category-detail-header .sub-tabs .tab-btn.active { background:#3b82f6; color:#fff; border-color:#3b82f6; }
+.category-detail-header .sub-tabs .tab-btn:hover:not(.active) { background:#f1f5f9; }
+
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; flex:1; min-height:200px; }
+.card { background:#fff; border-radius:16px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,.04); border:1px solid #e2e8f0; transition:.2s; cursor:grab; display:flex; flex-direction:column; user-select:none; }
+.card:active { cursor:grabbing; }
+.card.dragging { opacity:.4; border:1px dashed #3b82f6; }
+.card.drag-over { border-color:#3b82f6; background:#f0f9ff; }
+.card:hover { transform:translateY(-4px); box-shadow:0 12px 30px rgba(0,0,0,.08); border-color:#b9d0f0; }
+.card .card-type { font-size:.65rem; font-weight:700; padding:2px 10px; border-radius:40px; align-self:flex-start; margin-bottom:6px; }
+.card .card-type.knowledge { background:#dbeafe; color:#1d4ed8; }
+.card .card-type.case { background:#ede9fe; color:#7c3aed; }
+.card .card-type.comparison { background:#fef3c7; color:#92400e; }
+.card .card-type.file { background:#cffafe; color:#0e7490; }
+.card .card-cat { font-size:.7rem; font-weight:600; color:#3b82f6; background:#eff6ff; padding:2px 12px; border-radius:40px; display:inline-block; align-self:flex-start; margin-bottom:6px; }
+.card h3 { font-size:1.05rem; margin-bottom:6px; word-break:break-all; }
+.card .card-summary { color:#475569; font-size:.88rem; line-height:1.5; flex:1; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.card .card-tags { margin-top:12px; display:flex; flex-wrap:wrap; gap:4px; }
+.card .card-tags span { background:#f1f5f9; color:#334155; font-size:.65rem; padding:2px 10px; border-radius:40px; }
+.card .card-footer { margin-top:12px; font-size:.7rem; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:10px; display:flex; justify-content:space-between; }
+.no-result { grid-column:1/-1; text-align:center; padding:80px 20px; color:#94a3b8; }
+
+.file-icon-large { font-size:3rem; text-align:center; margin:8px 0; }
+.file-info { font-size:.75rem; color:#64748b; text-align:center; margin-bottom:8px; }
+
+.diff-table-wrap { overflow-x:auto; margin-top:16px; }
+.diff-table { width:100%; border-collapse:collapse; font-size:.9rem; }
+.diff-table th, .diff-table td { border:1px solid #e2e8f0; padding:10px 14px; text-align:left; vertical-align:top; }
+.diff-table th { background:#f8fafc; font-weight:700; color:#0f172a; white-space:nowrap; }
+.diff-table td:first-child { background:#f8fafc; font-weight:600; white-space:nowrap; }
+.diff-table tr:hover td { background:#f0f9ff; }
+
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.4); backdrop-filter:blur(4px); justify-content:center; align-items:center; z-index:999; padding:20px; }
+.modal-overlay.show { display:flex; }
+.modal { background:#fff; max-width:800px; width:100%; border-radius:24px; padding:28px; max-height:92vh; overflow-y:auto; box-shadow:0 30px 60px rgba(0,0,0,.2); }
+.modal h2 { margin-bottom:20px; font-size:1.3rem; }
+.modal label { display:block; font-weight:600; font-size:.85rem; margin-top:14px; margin-bottom:4px; }
+.modal input, .modal select { width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:12px; font-size:.95rem; font-family:inherit; background:#fff; }
+.modal textarea { width:100%; padding:10px 14px; border:1px solid #e2e8f0; border-radius:12px; font-size:.95rem; font-family:inherit; background:#fff; min-height:80px; resize:vertical; overflow-y:hidden; transition:height .1s; }
+.modal input:focus, .modal textarea:focus, .modal select:focus { outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
+.modal .upload-row { display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; align-items:center; }
+.modal .upload-row .preview-img { width:60px; height:60px; object-fit:cover; border-radius:8px; border:1px solid #e2e8f0; }
+.modal .upload-row .file-input-label { background:#f1f5f9; padding:6px 16px; border-radius:30px; font-size:.8rem; cursor:pointer; }
+.modal .upload-row .file-input-label:hover { background:#e2e8f0; }
+.modal .upload-row input[type="file"] { display:none; }
+.modal .extra-fields-area { margin-top:12px; padding:12px; background:#f8fafc; border-radius:12px; }
+.modal .extra-fields-area .extra-item { display:flex; gap:8px; margin-bottom:6px; align-items:center; }
+.modal .extra-fields-area .extra-item input { flex:1; padding:6px 10px; border:1px solid #e2e8f0; border-radius:8px; font-size:.85rem; }
+.modal .btn-group { display:flex; gap:12px; justify-content:flex-end; margin-top:24px; }
+.modal .btn-group button { padding:10px 28px; border-radius:40px; border:none; font-weight:600; cursor:pointer; }
+.modal .btn-cancel { background:#e2e8f0; color:#334155; }
+.modal .btn-save { background:#3b82f6; color:#fff; }
+.modal .btn-save:hover { background:#2563eb; }
+.modal .parse-preview { background:#f0fdf4; border:1px solid #86efac; border-radius:12px; padding:12px; margin-top:12px; font-size:.85rem; display:none; }
+.modal .parse-preview.show { display:block; }
+.modal .parse-preview .row { margin:6px 0; }
+.modal .parse-preview .row strong { color:#065f46; }
+
+.diff-diseases-area, .diff-dimensions-area { margin-top:12px; padding:12px; background:#f8fafc; border-radius:12px; }
+.diff-disease-row, .diff-dimension-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
+.diff-disease-row input { flex:1; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:.9rem; min-width:120px; }
+.diff-dimension-row .dim-name { flex:0 0 140px; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:.9rem; font-weight:600; }
+.diff-dimension-row .dim-value { flex:1; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:.9rem; min-width:120px; }
+.remove-row-btn { background:none; border:none; color:#ef4444; font-weight:700; cursor:pointer; font-size:1rem; padding:0 6px; }
+.add-row-btn { background:#f1f5f9; border:1px dashed #94a3b8; border-radius:30px; padding:6px 16px; margin-top:6px; cursor:pointer; font-size:.85rem; }
+.add-row-btn:hover { background:#e2e8f0; }
+
+.detail-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.5); backdrop-filter:blur(4px); justify-content:center; align-items:center; z-index:1000; padding:30px; }
+.detail-overlay.show { display:flex; }
+.detail-box { background:#fff; max-width:900px; width:100%; border-radius:24px; padding:28px; max-height:90vh; overflow-y:auto; box-shadow:0 30px 60px rgba(0,0,0,.3); }
+.detail-box .close-detail { float:right; background:none; border:none; font-size:1.8rem; cursor:pointer; color:#94a3b8; }
+.detail-box .detail-type { display:inline-block; font-size:.7rem; font-weight:700; padding:2px 14px; border-radius:40px; margin-bottom:8px; }
+.detail-box .detail-type.knowledge { background:#dbeafe; color:#1d4ed8; }
+.detail-box .detail-type.case { background:#ede9fe; color:#7c3aed; }
+.detail-box .detail-type.comparison { background:#fef3c7; color:#92400e; }
+.detail-box .detail-type.file { background:#cffafe; color:#0e7490; }
+.detail-box .detail-cat { color:#3b82f6; font-weight:600; font-size:.8rem; }
+.detail-box h2 { margin:6px 0 12px 0; word-break:break-all; }
+.detail-box .detail-body { margin-top:12px; line-height:1.8; color:#1e293b; white-space:pre-wrap; }
+.detail-box .detail-body img { max-width:100%; border-radius:12px; margin:10px 0; border:1px solid #e2e8f0; }
+.detail-box .file-section { margin-top:16px; padding:16px; background:#ecfeff; border-radius:12px; border:1px solid #a5f3fc; text-align:center; }
+.detail-box .file-section .file-icon { font-size:4rem; margin:8px 0; }
+.detail-box .file-section .file-name { font-weight:600; word-break:break-all; margin:8px 0; }
+.detail-box .file-section .file-meta { font-size:.8rem; color:#64748b; margin-bottom:12px; }
+.detail-box .file-section .download-btn { display:inline-block; padding:10px 28px; background:#0ea5e9; color:#fff; border-radius:40px; text-decoration:none; font-weight:600; font-size:.9rem; }
+.detail-box .file-section .download-btn:hover { background:#0284c7; }
+.detail-box .detail-case-module { margin-top:16px; padding:12px; background:#f8fafc; border-radius:12px; }
+.detail-box .detail-case-module .module-label { font-weight:700; margin-bottom:4px; }
+.detail-box .detail-case-module .module-content { white-space:pre-wrap; font-size:.95rem; }
+.detail-box .detail-extra { margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.detail-box .detail-extra .extra-item { background:#f1f5f9; padding:8px 12px; border-radius:8px; }
+.detail-box .detail-extra .extra-item .extra-key { font-weight:600; font-size:.8rem; color:#475569; }
+.detail-box .detail-tags { margin-top:16px; display:flex; flex-wrap:wrap; gap:6px; }
+.detail-box .detail-tags span { background:#f1f5f9; padding:2px 14px; border-radius:40px; font-size:.8rem; }
+.detail-box .detail-delete { background:#fee2e2; color:#dc2626; border:none; padding:8px 20px; border-radius:40px; font-weight:600; cursor:pointer; margin-top:16px; }
+
+.mobile-menu-btn {
+  display:none;
+  position:fixed;
+  top:12px;
+  left:12px;
+  z-index:1002;
+  width:42px;
+  height:42px;
+  background:#fff;
+  border:1px solid #e2e8f0;
+  border-radius:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
+  font-size:1.3rem;
+  cursor:pointer;
+  align-items:center;
+  justify-content:center;
+  color:#0f172a;
+}
+.mobile-menu-btn:hover { background:#f1f5f9; }
+
+.sidebar-overlay {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.4);
+  backdrop-filter:blur(2px);
+  z-index:1000;
+}
+.sidebar-overlay.show { display:block; }
+
+@media (max-width:768px) {
+  .mobile-menu-btn { display:flex; }
+  .sidebar {
+    position:fixed;
+    left:-280px;
+    top:0;
+    height:100vh;
+    width:260px;
+    z-index:1001;
+    box-shadow:2px 0 12px rgba(0,0,0,.08);
+  }
+  .sidebar.show { left:0; }
+  .main { padding:16px; padding-top:64px; }
+  .top-bar { flex-direction:column; align-items:stretch; }
+  .modal { padding:20px; border-radius:20px; }
+}
+</style>
+</head>
+<body>
+
+<button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="logo" id="logoTitle">🦷 <span>DentalKB</span> <span class="edit-icon">✎</span></div>
+  <div class="sub">口腔知识库 + 病例 + 鉴别 + 文件</div>
+
+  <div class="stat-box">
+    <div><div class="num" id="totalCount">0</div><div class="label">总条目</div></div>
+    <div><div class="num" id="caseCount">0</div><div class="label">病例</div></div>
+    <div><div class="num" id="diffCount">0</div><div class="label">鉴别</div></div>
+    <div><div class="num" id="fileCount">0</div><div class="label">文件</div></div>
+  </div>
+
+  <div class="category-header">
+    <h4>📂 分类</h4>
+    <button class="add-cat-btn" id="addCategoryBtn">＋ 新增</button>
+  </div>
+  <ul class="category-list" id="categoryList">
+    <li data-cat="all" class="active">全部 <span class="count" id="allCount">0</span></li>
+  </ul>
+
+  <h4>🔬 鉴别诊断</h4>
+  <div class="diff-entry" id="diffEntry">📊 进入鉴别诊断对比</div>
+
+  <h4>📁 文件库</h4>
+  <div class="file-entry" id="fileEntry">🗂️ 进入文件库</div>
+
+  <h4>🏷️ 热门标签</h4>
+  <div class="tag-cloud" id="tagCloud"></div>
+
+  <div class="backup-area">
+    <button class="primary" id="saveToFileBtn">💾 保存到文件（自动同步）</button>
+    <button id="exportBtn">📤 导出备份</button>
+    <button id="importBtn">📥 导入备份</button>
+    <div class="save-status" id="saveStatus">未选择保存文件</div>
+    <input type="file" id="fileInput" accept=".json" />
+  </div>
+</aside>
+
+<main class="main" id="mainContent">
+  <div id="viewContainer"></div>
+</main>
+
+<div class="modal-overlay" id="formModal">
+  <div class="modal">
+    <h2 id="formTitle">📝 新增知识点</h2>
+    <label>标题 *</label>
+    <input type="text" id="inputTitle" placeholder="如：可复性牙髓炎" />
+    <label>分类 *</label>
+    <input type="text" id="inputCategory" placeholder="如：牙体牙髓学" list="catSuggest" />
+    <datalist id="catSuggest"></datalist>
+    <label>标签（用英文逗号分割）</label>
+    <input type="text" id="inputTags" placeholder="标签1, 标签2" />
+    <label>定义</label>
+    <input type="text" id="inputSummary" placeholder="简要定义" />
+    <label>详细内容（支持 Markdown）</label>
+    <textarea id="inputDetail" rows="4"></textarea>
+    <label>图片</label>
+    <div class="upload-row">
+      <label class="file-input-label" for="imageFileInput">📎 选择图片</label>
+      <input type="file" id="imageFileInput" accept="image/*" multiple />
+      <div id="imagePreviewContainer" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+    <div class="btn-group">
+      <button class="btn-cancel" id="closeFormBtn">取消</button>
+      <button class="btn-save" id="saveEntryBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="caseModal">
+  <div class="modal">
+    <h2 id="caseFormTitle">📋 新增真实病例</h2>
+    <label>标题 *</label>
+    <input type="text" id="caseTitle" placeholder="病例标题" />
+    <label>分类 *</label>
+    <input type="text" id="caseCategory" placeholder="如：牙体牙髓学" list="catSuggest2" />
+    <datalist id="catSuggest2"></datalist>
+    <label>标签（用英文逗号分割）</label>
+    <input type="text" id="caseTags" placeholder="典型病例, 根管治疗" />
+    <label>① 主诉呈现</label>
+    <textarea id="caseChiefComplaint" rows="2"></textarea>
+    <label>② 问诊发现</label>
+    <textarea id="caseInquiry" rows="3"></textarea>
+    <label>③ 检查结果</label>
+    <textarea id="caseExamination" rows="3"></textarea>
+    <label>④ 诊断思考</label>
+    <textarea id="caseDiagnosisThinking" rows="3"></textarea>
+    <label>⑤ 参考答案</label>
+    <textarea id="caseReferenceAnswer" rows="3"></textarea>
+    <label>⑥ 图片呈现</label>
+    <div class="upload-row">
+      <label class="file-input-label" for="caseImageInput">📎 选择图片</label>
+      <input type="file" id="caseImageInput" accept="image/*" multiple />
+      <div id="caseImagePreview" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+    <label style="margin-top:12px;">📌 额外字段</label>
+    <div class="extra-fields-area" id="extraFieldsContainer"></div>
+    <button type="button" id="addExtraFieldBtn" class="add-row-btn">➕ 添加额外字段</button>
+    <div class="btn-group">
+      <button class="btn-cancel" id="closeCaseBtn">取消</button>
+      <button class="btn-save" id="saveCaseBtn">保存病例</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="diffModal">
+  <div class="modal" style="max-width:900px;">
+    <h2 id="diffFormTitle">🔬 新增鉴别诊断对比组</h2>
+    <label>对比组标题 *</label>
+    <input type="text" id="diffTitle" placeholder="如：急性牙髓炎 vs 急性根尖周炎" />
+    <label>分类 *</label>
+    <input type="text" id="diffCategory" placeholder="如：牙体牙髓学" list="catSuggest3" />
+    <datalist id="catSuggest3"></datalist>
+    <label>标签（用英文逗号分割）</label>
+    <input type="text" id="diffTags" placeholder="鉴别诊断, 疼痛" />
+    <label>快速模板（选一个自动填维度）</label>
+    <select id="diffTemplate">
+      <option value="none">— 不选择 —</option>
+      <option value="pulp">🦷 牙髓/根尖病（疼痛性质、定位、冷热刺激、叩诊、牙髓活力、X线）</option>
+      <option value="perio">🩸 牙周病（牙龈出血、牙周袋深度、附着丧失、牙槽骨吸收、松动度）</option>
+      <option value="mucosa">👄 口腔黏膜病（好发部位、形态、颜色、疼痛、癌变风险）</option>
+      <option value="infection">🔥 颌面部感染（红肿热痛、张口度、发热、白细胞、X线/CT）</option>
+    </select>
+    <label>临床要点/备注</label>
+    <textarea id="diffNotes" rows="2"></textarea>
+    <label style="margin-top:16px;">参与对比的疾病（至少2个）</label>
+    <div class="diff-diseases-area" id="diffDiseasesArea"></div>
+    <button type="button" id="addDiseaseBtn" class="add-row-btn">➕ 添加疾病</button>
+    <label style="margin-top:16px;">对比维度</label>
+    <div class="diff-dimensions-area" id="diffDimensionsArea"></div>
+    <button type="button" id="addDimensionBtn" class="add-row-btn">➕ 添加对比维度</button>
+    <div class="btn-group">
+      <button class="btn-cancel" id="closeDiffBtn">取消</button>
+      <button class="btn-save" id="saveDiffBtn">保存对比组</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="fileModal">
+  <div class="modal">
+    <h2 id="fileFormTitle">📁 上传文件</h2>
+    <label>文件名（可修改显示名）*</label>
+    <input type="text" id="fileName" placeholder="如：牙体牙髓学笔记.pdf" />
+    <label>选择文件 *</label>
+    <div class="upload-row">
+      <label class="file-input-label" for="anyFileInput" style="background:#dbeafe;color:#1e40af;">📎 选择文件（任意类型）</label>
+      <input type="file" id="anyFileInput" />
+      <div id="anyFilePreview" style="font-size:.85rem;color:#0e7490;"></div>
+    </div>
+    <label>分类（可选）</label>
+    <input type="text" id="fileCategory" placeholder="如：学习资料" list="catSuggest4" />
+    <datalist id="catSuggest4"></datalist>
+    <label>标签（用英文逗号分割，可选）</label>
+    <input type="text" id="fileTags" placeholder="笔记, 教材, 复习" />
+    <label>备注说明（可选）</label>
+    <textarea id="fileNotes" rows="2" placeholder="简单说明这个文件的内容"></textarea>
+    <div class="btn-group">
+      <button class="btn-cancel" id="closeFileBtn">取消</button>
+      <button class="btn-save" id="saveFileBtn" style="background:#0ea5e9;">上传</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="pasteModal">
+  <div class="modal">
+    <h2>📋 粘贴文本自动生成知识点</h2>
+    <p style="color:#64748b;font-size:.85rem;margin-bottom:12px;">
+      把其他地方复制的内容粘贴到下面，点击“解析”会自动识别标题、定义和详细内容。
+    </p>
+    <label>粘贴内容 *</label>
+    <textarea id="pasteTextArea" rows="12" style="min-height:200px;"></textarea>
+    <div class="parse-preview" id="parsePreview"></div>
+    <div class="btn-group">
+      <button class="btn-cancel" id="closePasteBtn">取消</button>
+      <button class="btn-save" id="parsePasteBtn" style="background:#10b981;">🔍 解析并填充</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="newCategoryModal">
+  <div class="modal" style="max-width:400px;">
+    <h2>📂 新增分类</h2>
+    <label>分类名称 *</label>
+    <input type="text" id="newCategoryInput" placeholder="如：口腔颌面外科" />
+    <div class="btn-group">
+      <button class="btn-cancel" id="closeNewCategoryBtn">取消</button>
+      <button class="btn-save" id="saveNewCategoryBtn">创建</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="renameModal">
+  <div class="modal" style="max-width:400px;">
+    <h2>✏️ 修改知识库名称</h2>
+    <label>新名称</label>
+    <input type="text" id="renameInput" placeholder="输入新名称" />
+    <div class="btn-group">
+      <button class="btn-cancel" id="closeRenameBtn">取消</button>
+      <button class="btn-save" id="saveRenameBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="detail-overlay" id="detailModal">
+  <div class="detail-box">
+    <button class="close-detail" id="closeDetailBtn">&times;</button>
+    <div class="detail-type" id="detailType">知识点</div>
+    <div class="detail-cat" id="detailCategory">分类</div>
+    <h2 id="detailTitle">标题</h2>
+    <div class="detail-body" id="detailBody"></div>
+    <div id="caseModulesContainer" style="display:none;">
+      <div class="detail-case-module"><div class="module-label">① 主诉呈现</div><div class="module-content" id="detailChiefComplaint"></div></div>
+      <div class="detail-case-module"><div class="module-label">② 问诊发现</div><div class="module-content" id="detailInquiry"></div></div>
+      <div class="detail-case-module"><div class="module-label">③ 检查结果</div><div class="module-content" id="detailExamination"></div></div>
+      <div class="detail-case-module"><div class="module-label">④ 诊断思考</div><div class="module-content" id="detailDiagnosisThinking"></div></div>
+      <div class="detail-case-module"><div class="module-label">⑤ 参考答案</div><div class="module-content" id="detailReferenceAnswer"></div></div>
+      <div id="detailExtraFields" class="detail-extra"></div>
+    </div>
+    <div id="comparisonContainer" style="display:none;">
+      <div class="diff-table-wrap" id="diffTableWrap"></div>
+    </div>
+    <div id="fileDetailContainer" style="display:none;"></div>
+    <div class="detail-tags" id="detailTags"></div>
+    <button class="detail-delete" id="detailDeleteBtn">🗑️ 删除此条目</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   1. IndexedDB
+============================================================ */
+const DB_NAME='DentalKB', STORE_NAME='entries';
+let db=null;
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME,1);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains(STORE_NAME)){
+        const s=d.createObjectStore(STORE_NAME,{keyPath:'id'});
+        s.createIndex('category','category',{unique:false});
+        s.createIndex('tags','tags',{unique:false,multiEntry:true});
+        s.createIndex('type','type',{unique:false});
+      }
+    };
+    req.onsuccess=e=>resolve(e.target.result);
+    req.onerror=e=>reject(e.target.error);
+  });
+}
+function dbAdd(e){return new Promise((res,rej)=>{const t=db.transaction(STORE_NAME,'readwrite');const s=t.objectStore(STORE_NAME);const r=s.add(e);r.onsuccess=()=>res(e);r.onerror=()=>rej(r.error);});}
+function dbUpdate(e){return new Promise((res,rej)=>{const t=db.transaction(STORE_NAME,'readwrite');const s=t.objectStore(STORE_NAME);const r=s.put(e);r.onsuccess=()=>res(e);r.onerror=()=>rej(r.error);});}
+function dbDelete(id){return new Promise((res,rej)=>{const t=db.transaction(STORE_NAME,'readwrite');const s=t.objectStore(STORE_NAME);const r=s.delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error);});}
+function dbGetAll(){return new Promise((res,rej)=>{const t=db.transaction(STORE_NAME,'readonly');const s=t.objectStore(STORE_NAME);const r=s.getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function dbGetById(id){return new Promise((res,rej)=>{const t=db.transaction(STORE_NAME,'readonly');const s=t.objectStore(STORE_NAME);const r=s.get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+
+/* ============================================================
+   2. 文件保存
+============================================================ */
+let fileHandle=null;
+let autoSaveTimer=null;
+
+function updateSaveStatus(msg,ok){
+  const el=document.getElementById('saveStatus');
+  if(!el)return;
+  el.textContent=msg;
+  el.style.color=ok?'#10b981':'#64748b';
+}
+
+async function pickAndSaveFile(){
+  if(!window.showSaveFilePicker){
+    updateSaveStatus('浏览器不支持自动保存，已使用下载方式');
+    downloadBackup();
+    return;
+  }
+  try{
+    fileHandle=await window.showSaveFilePicker({
+      suggestedName:`dental_kb_${new Date().toISOString().slice(0,10)}.json`,
+      types:[{description:'JSON 备份',accept:{'application/json':['.json']}}]
+    });
+    await writeToFile(true);
+  }catch(e){
+    if(e.name!=='AbortError')console.error(e);
+  }
+}
+
+async function writeToFile(manual){
+  if(!fileHandle){
+    if(manual)downloadBackup();
+    return;
+  }
+  try{
+    const data=await dbGetAll();
+    const text=JSON.stringify(data,null,2);
+    const writable=await fileHandle.createWritable();
+    await writable.write(text);
+    await writable.close();
+    updateSaveStatus('✅ 已保存 · '+new Date().toLocaleTimeString(),true);
+  }catch(e){
+    console.error('写文件失败',e);
+    fileHandle=null;
+    updateSaveStatus('❌ 文件句柄失效，请重新点击保存',false);
+  }
+}
+
+function scheduleAutoSave(){
+  if(!fileHandle)return;
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer=setTimeout(()=>writeToFile(false),1500);
+}
+
+function downloadBackup(){
+  dbGetAll().then(data=>{
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`dental_kb_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    updateSaveStatus('已下载备份文件',true);
+  });
+}
+
+document.getElementById('saveToFileBtn').addEventListener('click',pickAndSaveFile);
+
+/* ============================================================
+   3. 输入框自动增高
+============================================================ */
+function autoResizeAll(scope){
+  const root=scope||document;
+  root.querySelectorAll('textarea').forEach(ta=>{
+    ta.style.height='auto';
+    ta.style.height=Math.max(80,ta.scrollHeight)+'px';
+  });
+}
+document.addEventListener('input',function(e){
+  if(e.target.tagName==='TEXTAREA'){
+    e.target.style.height='auto';
+    e.target.style.height=Math.max(80,e.target.scrollHeight)+'px';
+  }
+});
+
+/* ============================================================
+   4. 文件辅助
+============================================================ */
+function formatSize(bytes){
+  if(!bytes)return'0 B';
+  const u=['B','KB','MB','GB'];
+  let i=0,n=bytes;
+  while(n>=1024&&i<u.length-1){n/=1024;i++;}
+  return n.toFixed(i===0?0:1)+' '+u[i];
+}
+
+function getFileIcon(mime,name){
+  const ext=(name||'').split('.').pop().toLowerCase();
+  if(mime?.startsWith('image/'))return'🖼️';
+  if(mime==='application/pdf'||ext==='pdf')return'📕';
+  if(['doc','docx'].includes(ext))return'📘';
+  if(['xls','xlsx','csv'].includes(ext))return'📗';
+  if(['ppt','pptx'].includes(ext))return'📙';
+  if(['zip','rar','7z'].includes(ext))return'🗜️';
+  if(['mp4','mov','avi'].includes(ext))return'🎬';
+  if(['mp3','wav'].includes(ext))return'🎵';
+  return'📄';
+}
+
+/* ============================================================
+   5. 分类管理
+============================================================ */
+const CUSTOM_CATEGORIES_KEY='dental_custom_categories';
+const CATEGORY_ORDER_KEY='dental_category_order';
+
+function loadCustomCategories(){const s=localStorage.getItem(CUSTOM_CATEGORIES_KEY);if(s){try{return JSON.parse(s);}catch(e){return[];}}return[];}
+function saveCustomCategories(c){localStorage.setItem(CUSTOM_CATEGORIES_KEY,JSON.stringify(c));}
+function loadCategoryOrder(){const s=localStorage.getItem(CATEGORY_ORDER_KEY);if(s){try{return JSON.parse(s);}catch(e){return[];}}return[];}
+function saveCategoryOrder(o){localStorage.setItem(CATEGORY_ORDER_KEY,JSON.stringify(o));}
+
+function getAllCategories(entries){
+  const fromEntries=new Set();
+  entries.forEach(e=>{if(e.category)fromEntries.add(e.category);});
+  const custom=loadCustomCategories();
+  const all=new Set([...fromEntries,...custom]);
+  return Array.from(all).sort();
+}
+function getSortedCategories(entries){
+  const all=getAllCategories(entries);
+  const order=loadCategoryOrder();
+  const orderSet=new Set(order);
+  const sorted=[];
+  order.forEach(c=>{if(all.includes(c))sorted.push(c);});
+  const rest=all.filter(c=>!orderSet.has(c)).sort();
+  rest.forEach(c=>sorted.push(c));
+  return sorted;
+}
+
+function getCardOrderKey(viewMode,category){
+  if(viewMode==='all')return 'dental_card_order_all';
+  if(viewMode==='category')return `dental_card_order_cat_${category}`;
+  return null;
+}
+function loadCardOrder(key){const s=localStorage.getItem(key);if(s){try{return JSON.parse(s);}catch(e){return[];}}return[];}
+function saveCardOrder(key,order){localStorage.setItem(key,JSON.stringify(order));}
+function sortCardsByOrder(cards,orderKey){
+  const order=loadCardOrder(orderKey);
+  if(order.length===0)return cards;
+  const map={};cards.forEach(c=>{map[c.id]=c;});
+  const result=[];
+  order.forEach(id=>{if(map[id]){result.push(map[id]);delete map[id];}});
+  Object.values(map).forEach(c=>result.push(c));
+  return result;
+}
+
+/* ============================================================
+   6. 全局状态
+============================================================ */
+let allEntries=[];
+let viewMode='all';
+let currentFilterCat='all';
+let subTypeFilter='all';
+let currentFilterTag=null;
+let editingId=null;
+let editingCaseId=null;
+let editingDiffId=null;
+let tempImages=[];
+let tempCaseImages=[];
+let extraFields=[];
+let diffDiseases=[];
+let diffDimensions=[];
+let currentDetailId=null;
+let currentFileData=null;
+
+const DIFF_TEMPLATES = {
+  pulp: ['疼痛性质','疼痛定位','冷热刺激','叩诊','牙髓活力','X线表现'],
+  perio: ['牙龈出血','牙周袋深度','附着丧失','牙槽骨吸收','牙齿松动度'],
+  mucosa: ['好发部位','形态','颜色','疼痛','癌变风险'],
+  infection: ['红肿热痛','张口度','发热','白细胞','X线/CT']
+};
+
+/* ============================================================
+   7. DOM
+============================================================ */
+const viewContainer=document.getElementById('viewContainer');
+const categoryList=document.getElementById('categoryList');
+const tagCloud=document.getElementById('tagCloud');
+const totalCount=document.getElementById('totalCount');
+const caseCount=document.getElementById('caseCount');
+const diffCount=document.getElementById('diffCount');
+const fileCount=document.getElementById('fileCount');
+const allCount=document.getElementById('allCount');
+const diffEntry=document.getElementById('diffEntry');
+const fileEntry=document.getElementById('fileEntry');
+
+const formModal=document.getElementById('formModal');
+const caseModal=document.getElementById('caseModal');
+const diffModal=document.getElementById('diffModal');
+const fileModal=document.getElementById('fileModal');
+const newCategoryModal=document.getElementById('newCategoryModal');
+const renameModal=document.getElementById('renameModal');
+const detailModal=document.getElementById('detailModal');
+const pasteModal=document.getElementById('pasteModal');
+
+const RENAME_KEY='dental_kb_name';
+function loadKbName(){return localStorage.getItem(RENAME_KEY)||'DentalKB';}
+function saveKbName(n){localStorage.setItem(RENAME_KEY,n);updateKbNameDisplay();}
+function updateKbNameDisplay(){document.getElementById('logoTitle').innerHTML=`🦷 <span>${loadKbName()}</span> <span class="edit-icon">✎</span>`;}
+document.getElementById('logoTitle').addEventListener('click',()=>{document.getElementById('renameInput').value=loadKbName();renameModal.classList.add('show');});
+document.getElementById('closeRenameBtn').addEventListener('click',()=>renameModal.classList.remove('show'));
+document.getElementById('saveRenameBtn').addEventListener('click',()=>{const n=document.getElementById('renameInput').value.trim();if(n){saveKbName(n);renameModal.classList.remove('show');}});
+renameModal.addEventListener('click',e=>{if(e.target===renameModal)renameModal.classList.remove('show');});
+updateKbNameDisplay();
+
+const mobileMenuBtn=document.getElementById('mobileMenuBtn');
+const sidebarEl=document.getElementById('sidebar');
+const sidebarOverlay=document.getElementById('sidebarOverlay');
+
+function openMobileSidebar(){sidebarEl.classList.add('show');sidebarOverlay.classList.add('show');}
+function closeMobileSidebar(){sidebarEl.classList.remove('show');sidebarOverlay.classList.remove('show');}
+
+if(mobileMenuBtn){
+  mobileMenuBtn.addEventListener('click',openMobileSidebar);
+  sidebarOverlay.addEventListener('click',closeMobileSidebar);
+  window.addEventListener('resize',()=>{if(window.innerWidth>768)closeMobileSidebar();});
+}
+
+/* ============================================================
+   8. 渲染
+============================================================ */
+function render(){
+  updateSidebar();
+  if(viewMode==='all')renderAllView();
+  else if(viewMode==='category')renderCategoryView();
+  else if(viewMode==='differential')renderDifferentialView();
+  else if(viewMode==='files')renderFilesView();
+}
+
+function updateSidebar(){
+  totalCount.textContent=allEntries.length;
+  caseCount.textContent=allEntries.filter(e=>e.type==='case').length;
+  diffCount.textContent=allEntries.filter(e=>e.type==='comparison').length;
+  fileCount.textContent=allEntries.filter(e=>e.type==='file').length;
+
+  const sortedCats=getSortedCategories(allEntries);
+  const catMap={};
+  allEntries.forEach(e=>{catMap[e.category]=(catMap[e.category]||0)+1;});
+  const custom=loadCustomCategories();
+  custom.forEach(c=>{if(!(c in catMap))catMap[c]=0;});
+
+  let html=`<li data-cat="all" class="${viewMode==='all'&&currentFilterCat==='all'?'active':''}" draggable="false">全部 <span class="count">${allEntries.length}</span></li>`;
+  sortedCats.forEach(c=>{
+    const active=(viewMode==='category'&&currentFilterCat===c)?'active':'';
+    html+=`<li data-cat="${c}" class="${active}" draggable="true">${c} <span class="count">${catMap[c]||0}</span>
+      <span class="action-btns">
+        <button class="kb-btn" data-cat="${c}" title="新增知识点">＋</button>
+        <button class="case-btn" data-cat="${c}" title="新增病例">📋</button>
+      </span></li>`;
+  });
+  categoryList.innerHTML=html;
+  setupCategoryDragDrop();
+
+  document.querySelectorAll('.kb-btn').forEach(b=>b.addEventListener('click',function(e){e.stopPropagation();openAddForm(this.dataset.cat);}));
+  document.querySelectorAll('.case-btn').forEach(b=>b.addEventListener('click',function(e){e.stopPropagation();openCaseForm(this.dataset.cat);}));
+
+  const tagMap={};
+  allEntries.forEach(e=>{if(e.tags)e.tags.forEach(t=>{tagMap[t]=(tagMap[t]||0)+1;});});
+  let tagHtml='';
+  Object.keys(tagMap).sort((a,b)=>tagMap[b]-tagMap[a]).slice(0,15).forEach(t=>{
+    const active=(currentFilterTag===t&&viewMode==='all')?'active':'';
+    tagHtml+=`<span class="tag-item ${active}" data-tag="${t}">${t} (${tagMap[t]})</span>`;
+  });
+  tagCloud.innerHTML=tagHtml||'<span style="font-size:.8rem;color:#94a3b8;">暂无标签</span>';
+
+  const catOptions=sortedCats;
+  ['catSuggest','catSuggest2','catSuggest3','catSuggest4'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.innerHTML=catOptions.map(c=>`<option value="${c}">`).join('');
+  });
+
+  diffEntry.classList.toggle('active',viewMode==='differential');
+  fileEntry.classList.toggle('active',viewMode==='files');
+}
+
+function setupCategoryDragDrop(){
+  const items=categoryList.querySelectorAll('li[data-cat]');
+  let dragItem=null;
+  items.forEach(item=>{
+    item.addEventListener('dragstart',function(e){
+      if(this.dataset.cat==='all'){e.preventDefault();return;}
+      dragItem=this;this.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',this.dataset.cat);
+    });
+    item.addEventListener('dragend',function(){this.classList.remove('dragging');document.querySelectorAll('.category-list li').forEach(li=>li.classList.remove('drag-over'));});
+    item.addEventListener('dragover',function(e){e.preventDefault();if(!dragItem||dragItem===this)return;this.classList.add('drag-over');});
+    item.addEventListener('dragleave',function(){this.classList.remove('drag-over');});
+    item.addEventListener('drop',function(e){
+      e.preventDefault();this.classList.remove('drag-over');
+      if(!dragItem||dragItem===this)return;
+      const from=dragItem.dataset.cat,to=this.dataset.cat;
+      if(from==='all'||to==='all')return;
+      const order=loadCategoryOrder();
+      let newOrder=order.filter(c=>c!==from);
+      const idx=newOrder.indexOf(to);
+      if(idx===-1)newOrder.push(from);
+      else newOrder.splice(idx,0,from);
+      saveCategoryOrder(newOrder);
+      render();
+    });
+  });
+}
+
+/* ===== 全部视图（搜索只更新卡片，不重建结构） ===== */
+function renderAllView(){
+  const existingSearch=document.getElementById('searchInput');
+
+  if(!existingSearch){
+    viewContainer.innerHTML=`
+      <div class="top-bar">
+        <div class="search-wrap"><span class="icon">🔍</span><input type="text" id="searchInput" placeholder="搜索标题、标签..." /></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-paste" id="openPasteBtn">📋 粘贴</button>
+          <button class="btn-file" id="openFileBtn">📁 文件</button>
+          <button class="btn-primary" id="openAddBtn">+ 知识点</button>
+          <button class="btn-case" id="openCaseBtn">📋 病例</button>
+          <button class="btn-diff" id="openDiffBtn">🔬 鉴别</button>
+        </div>
+      </div>
+      <div class="grid" id="cardGrid"></div>
+    `;
+    document.getElementById('searchInput').addEventListener('input',updateAllViewCards);
+    document.getElementById('openAddBtn').addEventListener('click',()=>openAddForm(''));
+    document.getElementById('openCaseBtn').addEventListener('click',()=>openCaseForm(''));
+    document.getElementById('openDiffBtn').addEventListener('click',()=>openDiffForm(''));
+    document.getElementById('openFileBtn').addEventListener('click',openFileModal);
+    document.getElementById('openPasteBtn').addEventListener('click',openPasteModal);
+  }
+  updateAllViewCards();
+  allCount.textContent=allEntries.length;
+}
+
+function updateAllViewCards(){
+  const keyword=(document.getElementById('searchInput')?.value||'').trim().toLowerCase();
+  let filtered=allEntries.filter(e=>e.type!=='file');
+  if(currentFilterCat!=='all')filtered=filtered.filter(e=>e.category===currentFilterCat);
+  if(currentFilterTag)filtered=filtered.filter(e=>e.tags&&e.tags.includes(currentFilterTag));
+  if(keyword){
+    filtered=filtered.filter(e=>
+      e.title.toLowerCase().includes(keyword)||
+      (e.summary&&e.summary.toLowerCase().includes(keyword))||
+      (e.detail&&e.detail.toLowerCase().includes(keyword))||
+      (e.tags&&e.tags.some(t=>t.toLowerCase().includes(keyword)))
+    );
+  }
+  const orderKey=getCardOrderKey('all',null);
+  filtered=sortCardsByOrder(filtered,orderKey);
+
+  const grid=document.getElementById('cardGrid');
+  if(!grid)return;
+  if(filtered.length===0){grid.innerHTML='<div class="no-result">😕 没有找到匹配的条目</div>';return;}
+  grid.innerHTML=filtered.map(entry=>renderCard(entry)).join('');
+  bindCardClicks();
+  setupCardDragDrop(grid,'all',null);
+}
+
+function renderCategoryView(){
+  const cat=currentFilterCat;
+  if(cat==='all'){viewMode='all';render();return;}
+
+  let items=allEntries.filter(e=>e.category===cat&&e.type!=='file');
+  if(subTypeFilter==='knowledge')items=items.filter(e=>e.type==='knowledge');
+  else if(subTypeFilter==='case')items=items.filter(e=>e.type==='case');
+  else if(subTypeFilter==='comparison')items=items.filter(e=>e.type==='comparison');
+
+  const orderKey=getCardOrderKey('category',cat);
+  items=sortCardsByOrder(items,orderKey);
+
+  const total=allEntries.filter(e=>e.category===cat&&e.type!=='file').length;
+  const kbCount=allEntries.filter(e=>e.category===cat&&e.type==='knowledge').length;
+  const caseCnt=allEntries.filter(e=>e.category===cat&&e.type==='case').length;
+  const diffCnt=allEntries.filter(e=>e.category===cat&&e.type==='comparison').length;
+
+  viewContainer.innerHTML=`
+    <div class="category-detail-header">
+      <div class="top-row">
+        <button class="back-btn" id="backToAllBtn">← 返回全部</button>
+        <span class="cat-title">📂 ${cat}</span>
+        <span class="cat-count">（共 ${total} 条）</span>
+        <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-primary" id="addKbInCat">+ 知识点</button>
+          <button class="btn-case" id="addCaseInCat">📋 病例</button>
+          <button class="btn-diff" id="addDiffInCat">🔬 鉴别</button>
+        </div>
+      </div>
+      <div class="sub-tabs">
+        <button class="tab-btn ${subTypeFilter==='all'?'active':''}" data-sub="all">全部 (${total})</button>
+        <button class="tab-btn ${subTypeFilter==='knowledge'?'active':''}" data-sub="knowledge">📖 知识点 (${kbCount})</button>
+        <button class="tab-btn ${subTypeFilter==='case'?'active':''}" data-sub="case">📋 病例 (${caseCnt})</button>
+        <button class="tab-btn ${subTypeFilter==='comparison'?'active':''}" data-sub="comparison">🔬 鉴别 (${diffCnt})</button>
+      </div>
+    </div>
+    <div class="grid" id="categoryCardGrid"></div>
+  `;
+
+  document.getElementById('backToAllBtn').addEventListener('click',()=>{viewMode='all';currentFilterCat='all';subTypeFilter='all';render();});
+  document.getElementById('addKbInCat').addEventListener('click',()=>openAddForm(cat));
+  document.getElementById('addCaseInCat').addEventListener('click',()=>openCaseForm(cat));
+  document.getElementById('addDiffInCat').addEventListener('click',()=>openDiffForm(cat));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',function(){subTypeFilter=this.dataset.sub;render();}));
+
+  const grid=document.getElementById('categoryCardGrid');
+  if(items.length===0){grid.innerHTML='<div class="no-result">😕 该分类下暂无此类型条目</div>';return;}
+  grid.innerHTML=items.map(entry=>renderCard(entry)).join('');
+  bindCardClicks();
+  setupCardDragDrop(grid,'category',cat);
+}
+
+function renderCard(entry){
+  const isCase=entry.type==='case';
+  const isDiff=entry.type==='comparison';
+  const isFile=entry.type==='file';
+  let typeLabel='📖 知识点',typeClass='knowledge';
+  if(isCase){typeLabel='📋 真实病例';typeClass='case';}
+  if(isDiff){typeLabel='🔬 鉴别诊断';typeClass='comparison';}
+  if(isFile){typeLabel='📁 文件';typeClass='file';}
+  let summaryText=entry.summary||'暂无定义';
+  if(isCase&&entry.caseData&&entry.caseData.chiefComplaint)summaryText='主诉：'+entry.caseData.chiefComplaint;
+  if(isDiff&&entry.diseases)summaryText='对比：'+entry.diseases.join(' vs ');
+  if(isFile)summaryText=(entry.fileName||'')+' · '+formatSize(entry.fileSize);
+  const tagHtml=entry.tags?entry.tags.map(t=>`<span>#${t}</span>`).join(''):'';
+  
+  if(isFile){
+    return `<div class="card" data-id="${entry.id}" draggable="true">
+      <span class="card-type ${typeClass}">${typeLabel}</span>
+      ${entry.category?`<span class="card-cat">${entry.category}</span>`:''}
+      <div class="file-icon-large">${getFileIcon(entry.fileType,entry.fileName)}</div>
+      <h3 style="text-align:center;">${entry.title}</h3>
+      <div class="file-info">${formatSize(entry.fileSize)}</div>
+      <div class="card-tags">${tagHtml}</div>
+      <div class="card-footer">
+        <span>${new Date(entry.createdAt).toLocaleDateString()}</span>
+      </div>
+    </div>`;
+  }
+  
+  const imgInd=(entry.images&&entry.images.length>0)?'📷':'';
+  return `<div class="card" data-id="${entry.id}" draggable="true">
+    <span class="card-type ${typeClass}">${typeLabel}</span>
+    <span class="card-cat">${entry.category}</span>
+    <h3>${entry.title}</h3>
+    <div class="card-summary">${summaryText}</div>
+    <div class="card-tags">${tagHtml}</div>
+    <div class="card-footer">
+      <span>${new Date(entry.updatedAt||entry.createdAt).toLocaleDateString()}</span>
+      <span>${imgInd}</span>
+    </div>
+  </div>`;
+}
+
+function bindCardClicks(){
+  document.querySelectorAll('.card').forEach(el=>{
+    el.addEventListener('click',function(){
+      if(this.classList.contains('dragging'))return;
+      openDetail(this.dataset.id);
+    });
+  });
+}
+
+function setupCardDragDrop(grid,viewMode,category){
+  let dragItem=null;
+  grid.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('dragstart',function(e){
+      dragItem=this;this.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',this.dataset.id);
+    });
+    card.addEventListener('dragend',function(){this.classList.remove('dragging');grid.querySelectorAll('.card').forEach(c=>c.classList.remove('drag-over'));});
+    card.addEventListener('dragover',function(e){e.preventDefault();if(!dragItem||dragItem===this)return;this.classList.add('drag-over');});
+    card.addEventListener('dragleave',function(){this.classList.remove('drag-over');});
+    card.addEventListener('drop',function(e){
+      e.preventDefault();this.classList.remove('drag-over');
+      if(!dragItem||dragItem===this)return;
+      const all=grid.querySelectorAll('.card');
+      const ids=Array.from(all).map(el=>el.dataset.id);
+      const from=dragItem.dataset.id,to=this.dataset.id;
+      const fi=ids.indexOf(from),ti=ids.indexOf(to);
+      if(fi===-1||ti===-1)return;
+      ids.splice(fi,1);ids.splice(ti,0,from);
+      const key=getCardOrderKey(viewMode,category);
+      if(key)saveCardOrder(key,ids);
+      render();
+    });
+  });
+}
+
+function renderDifferentialView(){
+  const diffs=allEntries.filter(e=>e.type==='comparison');
+  viewContainer.innerHTML=`
+    <div class="top-bar">
+      <div class="search-wrap"><span class="icon">🔍</span><input type="text" id="diffSearchInput" placeholder="搜索对比组..." /></div>
+      <button class="btn-diff" id="openDiffBtn2">🔬 新增对比组</button>
+    </div>
+    <div class="grid" id="diffGrid"></div>
+  `;
+  document.getElementById('openDiffBtn2').addEventListener('click',()=>openDiffForm(''));
+  document.getElementById('diffSearchInput').addEventListener('input',function(){
+    const kw=this.value.trim().toLowerCase();
+    const filtered=diffs.filter(d=>d.title.toLowerCase().includes(kw)||(d.diseases&&d.diseases.some(x=>x.toLowerCase().includes(kw))));
+    renderDiffCards(filtered);
+  });
+  renderDiffCards(diffs);
+
+  function renderDiffCards(list){
+    const grid=document.getElementById('diffGrid');
+    if(list.length===0){grid.innerHTML='<div class="no-result">😕 还没有对比组，点击上方按钮创建吧</div>';return;}
+    grid.innerHTML=list.map(entry=>renderCard(entry)).join('');
+    bindCardClicks();
+  }
+}
+
+function renderFilesView(){
+  const files=allEntries.filter(e=>e.type==='file');
+  const catFilter=currentFilterCat;
+  let filtered=files;
+  if(catFilter!=='all')filtered=filtered.filter(f=>f.category===catFilter);
+
+  viewContainer.innerHTML=`
+    <div class="top-bar">
+      <div class="search-wrap"><span class="icon">🔍</span><input type="text" id="fileSearchInput" placeholder="搜索文件名、备注..." /></div>
+      <button class="btn-file" id="openFileBtn2">📁 上传文件</button>
+    </div>
+    <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="tab-btn ${catFilter==='all'?'active':''}" data-cat="all" style="padding:4px 16px;border-radius:40px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;">全部 (${files.length})</button>
+      ${[...new Set(files.map(f=>f.category).filter(Boolean))].map(c=>`<button class="tab-btn ${catFilter===c?'active':''}" data-cat="${c}" style="padding:4px 16px;border-radius:40px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;">${c}</button>`).join('')}
+    </div>
+    <div class="grid" id="fileGrid"></div>
+  `;
+  document.getElementById('openFileBtn2').addEventListener('click',openFileModal);
+  document.getElementById('fileSearchInput').addEventListener('input',function(){
+    const kw=this.value.trim().toLowerCase();
+    const f2=filtered.filter(x=>x.title.toLowerCase().includes(kw)||(x.notes&&x.notes.toLowerCase().includes(kw))||(x.fileName&&x.fileName.toLowerCase().includes(kw)));
+    renderFileCards(f2);
+  });
+  document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',function(){
+    currentFilterCat=this.dataset.cat;
+    render();
+  }));
+  renderFileCards(filtered);
+
+  function renderFileCards(list){
+    const grid=document.getElementById('fileGrid');
+    if(list.length===0){grid.innerHTML='<div class="no-result">😕 还没有文件，点上方按钮上传吧</div>';return;}
+    grid.innerHTML=list.map(entry=>renderCard(entry)).join('');
+    bindCardClicks();
+  }
+}
+
+/* ============================================================
+   9. 详情
+============================================================ */
+async function openDetail(id){
+  const entry=await dbGetById(id);
+  if(!entry)return;
+  currentDetailId=id;
+  const isCase=entry.type==='case';
+  const isDiff=entry.type==='comparison';
+  const isFile=entry.type==='file';
+  detailType.textContent=isCase?'📋 真实病例':isDiff?'🔬 鉴别诊断':isFile?'📁 文件':'📖 知识点';
+  detailType.className='detail-type '+(isCase?'case':isDiff?'comparison':isFile?'file':'knowledge');
+  detailCategory.textContent=entry.category||'';
+  detailTitle.textContent=entry.title;
+
+  const fileDetailContainer=document.getElementById('fileDetailContainer');
+
+  if(isFile){
+    detailBody.innerHTML='';
+    caseModulesContainer.style.display='none';
+    comparisonContainer.style.display='none';
+    fileDetailContainer.style.display='block';
+    fileDetailContainer.innerHTML=`
+      <div class="file-section">
+        <div class="file-icon">${getFileIcon(entry.fileType,entry.fileName)}</div>
+        <div class="file-name">${entry.fileName||entry.title}</div>
+        <div class="file-meta">${formatSize(entry.fileSize)} · 上传于 ${new Date(entry.createdAt).toLocaleDateString()}</div>
+        <a class="download-btn" href="${entry.data}" download="${entry.fileName||entry.title}">⬇️ 下载文件</a>
+      </div>
+      ${entry.notes?`<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:12px;"><strong>备注：</strong><br>${entry.notes.replace(/\n/g,'<br>')}</div>`:''}
+    `;
+  }else if(isCase){
+    fileDetailContainer.style.display='none';
+    detailBody.innerHTML='';
+    caseModulesContainer.style.display='block';
+    comparisonContainer.style.display='none';
+    const cd=entry.caseData||{};
+    detailChiefComplaint.textContent=cd.chiefComplaint||'';
+    detailInquiry.textContent=cd.inquiry||'';
+    detailExamination.textContent=cd.examination||'';
+    detailDiagnosisThinking.textContent=cd.diagnosisThinking||'';
+    detailReferenceAnswer.textContent=cd.referenceAnswer||'';
+    let imgHtml='';
+    if(entry.images&&entry.images.length>0)imgHtml=entry.images.map(i=>`<img src="${i}" />`).join('');
+    detailBody.innerHTML=imgHtml;
+    let extra='';
+    if(cd.extraFields&&cd.extraFields.length>0)cd.extraFields.forEach(f=>{extra+=`<div class="extra-item"><div class="extra-key">${f.key}</div><div class="extra-value">${f.value}</div></div>`;});
+    detailExtraFields.innerHTML=extra||'<span style="color:#94a3b8;">无额外字段</span>';
+  }else if(isDiff){
+    fileDetailContainer.style.display='none';
+    caseModulesContainer.style.display='none';
+    comparisonContainer.style.display='block';
+    let imgHtml='';
+    if(entry.images&&entry.images.length>0)imgHtml=entry.images.map(i=>`<img src="${i}" />`).join('');
+    detailBody.innerHTML=imgHtml;
+    let table='<table class="diff-table"><thead><tr><th>对比维度</th>';
+    (entry.diseases||[]).forEach(d=>{table+=`<th>${d}</th>`;});
+    table+='</tr></thead><tbody>';
+    (entry.dimensions||[]).forEach(dim=>{
+      table+=`<tr><td>${dim.name}</td>`;
+      (dim.values||[]).forEach(v=>{table+=`<td>${v}</td>`;});
+      table+='</tr>';
+    });
+    table+='</tbody></table>';
+    if(entry.notes)table+=`<p style="margin-top:12px;color:#475569;"><strong>临床要点：</strong>${entry.notes}</p>`;
+    document.getElementById('diffTableWrap').innerHTML=table;
+  }else{
+    fileDetailContainer.style.display='none';
+    caseModulesContainer.style.display='none';
+    comparisonContainer.style.display='none';
+    let body=marked.parse(entry.detail||'暂无详细内容');
+    if(entry.images&&entry.images.length>0)body=entry.images.map(i=>`<img src="${i}" />`).join('')+body;
+    detailBody.innerHTML=body;
+  }
+  detailTags.innerHTML=entry.tags?entry.tags.map(t=>`<span>#${t}</span>`).join(''):'无标签';
+  detailModal.classList.add('show');
+}
+function closeDetail(){detailModal.classList.remove('show');currentDetailId=null;}
+
+/* ============================================================
+   10. 知识点表单
+============================================================ */
+const inputTitle=document.getElementById('inputTitle');
+const inputCategory=document.getElementById('inputCategory');
+const inputTags=document.getElementById('inputTags');
+const inputSummary=document.getElementById('inputSummary');
+const inputDetail=document.getElementById('inputDetail');
+const imageFileInput=document.getElementById('imageFileInput');
+const imagePreviewContainer=document.getElementById('imagePreviewContainer');
+
+function resetForm(){
+  inputTitle.value='';inputCategory.value='';inputTags.value='';inputSummary.value='';inputDetail.value='';
+  imagePreviewContainer.innerHTML='';tempImages=[];imageFileInput.value='';
+  editingId=null;
+  document.getElementById('formTitle').textContent='📝 新增知识点';
+}
+function openAddForm(cat){resetForm();if(cat)inputCategory.value=cat;formModal.classList.add('show');setTimeout(()=>autoResizeAll(formModal),50);}
+async function openEditForm(id){
+  const e=await dbGetById(id);if(!e)return;
+  resetForm();editingId=id;
+  document.getElementById('formTitle').textContent='✏️ 编辑知识点';
+  inputTitle.value=e.title||'';inputCategory.value=e.category||'';
+  inputTags.value=e.tags?e.tags.join(', '):'';inputSummary.value=e.summary||'';inputDetail.value=e.detail||'';
+  if(e.images&&e.images.length>0){tempImages=[...e.images];tempImages.forEach(src=>{const img=document.createElement('img');img.src=src;img.className='preview-img';imagePreviewContainer.appendChild(img);});}
+  formModal.classList.add('show');
+  setTimeout(()=>autoResizeAll(formModal),50);
+}
+function closeForm(){formModal.classList.remove('show');}
+imageFileInput.addEventListener('change',function(){
+  for(let f of this.files){const r=new FileReader();r.onload=ev=>{tempImages.push(ev.target.result);const img=document.createElement('img');img.src=ev.target.result;img.className='preview-img';imagePreviewContainer.appendChild(img);};r.readAsDataURL(f);}
+  this.value='';
+});
+document.getElementById('saveEntryBtn').addEventListener('click',async()=>{
+  const title=inputTitle.value.trim(),category=inputCategory.value.trim(),tagsRaw=inputTags.value.trim();
+  const summary=inputSummary.value.trim()||'暂无定义',detail=inputDetail.value.trim()||'暂无详细内容';
+  if(!title||!category){alert('请填写标题和分类！');return;}
+  const tags=tagsRaw?tagsRaw.split(',').map(s=>s.trim()).filter(s=>s):[];
+  const now=new Date().toISOString();
+  if(editingId){const old=await dbGetById(editingId);if(!old)return;await dbUpdate({...old,title,category,tags,summary,detail,images:tempImages.length>0?tempImages:old.images||[],updatedAt:now});}
+  else await dbAdd({id:Date.now().toString(36)+Math.random().toString(36).substr(2,6),type:'knowledge',title,category,tags,summary,detail,images:tempImages,createdAt:now,updatedAt:now});
+  closeForm();await refreshData();
+});
+
+/* ============================================================
+   11. 病例表单
+============================================================ */
+const caseTitle=document.getElementById('caseTitle');
+const caseCategory=document.getElementById('caseCategory');
+const caseTags=document.getElementById('caseTags');
+const caseChiefComplaint=document.getElementById('caseChiefComplaint');
+const caseInquiry=document.getElementById('caseInquiry');
+const caseExamination=document.getElementById('caseExamination');
+const caseDiagnosisThinking=document.getElementById('caseDiagnosisThinking');
+const caseReferenceAnswer=document.getElementById('caseReferenceAnswer');
+const caseImageInput=document.getElementById('caseImageInput');
+const caseImagePreview=document.getElementById('caseImagePreview');
+const extraFieldsContainer=document.getElementById('extraFieldsContainer');
+
+function resetCaseForm(){
+  caseTitle.value='';caseCategory.value='';caseTags.value='';
+  caseChiefComplaint.value='';caseInquiry.value='';caseExamination.value='';caseDiagnosisThinking.value='';caseReferenceAnswer.value='';
+  caseImagePreview.innerHTML='';tempCaseImages=[];caseImageInput.value='';
+  extraFields=[];extraFieldsContainer.innerHTML='';editingCaseId=null;
+  document.getElementById('caseFormTitle').textContent='📋 新增真实病例';
+}
+function openCaseForm(cat){resetCaseForm();if(cat)caseCategory.value=cat;caseModal.classList.add('show');setTimeout(()=>autoResizeAll(caseModal),50);}
+async function openEditCaseForm(id){
+  const e=await dbGetById(id);if(!e||e.type!=='case')return;
+  resetCaseForm();editingCaseId=id;
+  document.getElementById('caseFormTitle').textContent='✏️ 编辑真实病例';
+  caseTitle.value=e.title||'';caseCategory.value=e.category||'';caseTags.value=e.tags?e.tags.join(', '):'';
+  const cd=e.caseData||{};
+  caseChiefComplaint.value=cd.chiefComplaint||'';caseInquiry.value=cd.inquiry||'';
+  caseExamination.value=cd.examination||'';caseDiagnosisThinking.value=cd.diagnosisThinking||'';caseReferenceAnswer.value=cd.referenceAnswer||'';
+  if(e.images&&e.images.length>0){tempCaseImages=[...e.images];tempCaseImages.forEach(src=>{const img=document.createElement('img');img.src=src;img.className='preview-img';caseImagePreview.appendChild(img);});}
+  if(cd.extraFields&&cd.extraFields.length>0){extraFields=cd.extraFields.map(f=>({...f}));renderExtraFields();}
+  caseModal.classList.add('show');
+  setTimeout(()=>autoResizeAll(caseModal),50);
+}
+function closeCaseForm(){caseModal.classList.remove('show');}
+caseImageInput.addEventListener('change',function(){
+  for(let f of this.files){const r=new FileReader();r.onload=ev=>{tempCaseImages.push(ev.target.result);const img=document.createElement('img');img.src=ev.target.result;img.className='preview-img';caseImagePreview.appendChild(img);};r.readAsDataURL(f);}
+  this.value='';
+});
+document.getElementById('addExtraFieldBtn').addEventListener('click',function(){
+  extraFields.push({key:'',value:''});renderExtraFields();
+});
+function renderExtraFields(){
+  extraFieldsContainer.innerHTML='';
+  extraFields.forEach((f,idx)=>{
+    const div=document.createElement('div');div.className='extra-item';div.dataset.index=idx;
+    div.innerHTML=`<input type="text" class="extra-key" placeholder="字段名" value="${f.key}" /><input type="text" class="extra-value" placeholder="字段值" value="${f.value}" /><button class="remove-row-btn">✕</button>`;
+    extraFieldsContainer.appendChild(div);
+    div.querySelector('.remove-row-btn').addEventListener('click',()=>{extraFields.splice(idx,1);renderExtraFields();});
+    div.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',function(){
+      const i=parseInt(this.closest('.extra-item').dataset.index);
+      if(this.classList.contains('extra-key'))extraFields[i].key=this.value;
+      else extraFields[i].value=this.value;
+    }));
+  });
+}
+document.getElementById('saveCaseBtn').addEventListener('click',async()=>{
+  const title=caseTitle.value.trim(),category=caseCategory.value.trim(),tagsRaw=caseTags.value.trim();
+  const cc=caseChiefComplaint.value.trim(),inq=caseInquiry.value.trim(),exa=caseExamination.value.trim();
+  const dt=caseDiagnosisThinking.value.trim(),ra=caseReferenceAnswer.value.trim();
+  if(!title||!category){alert('请填写标题和分类！');return;}
+  const tags=tagsRaw?tagsRaw.split(',').map(s=>s.trim()).filter(s=>s):[];
+  const extra=extraFields.filter(f=>f.key.trim()&&f.value.trim());
+  const now=new Date().toISOString();
+  if(editingCaseId){
+    const old=await dbGetById(editingCaseId);if(!old)return;
+    await dbUpdate({...old,title,category,tags,summary:cc||'暂无主诉',images:tempCaseImages.length>0?tempCaseImages:old.images||[],caseData:{chiefComplaint:cc,inquiry:inq,examination:exa,diagnosisThinking:dt,referenceAnswer:ra,extraFields:extra},updatedAt:now});
+  }else{
+    await dbAdd({id:Date.now().toString(36)+Math.random().toString(36).substr(2,6),type:'case',title,category,tags,summary:cc||'暂无主诉',detail:'',images:tempCaseImages,caseData:{chiefComplaint:cc,inquiry:inq,examination:exa,diagnosisThinking:dt,referenceAnswer:ra,extraFields:extra},createdAt:now,updatedAt:now});
+  }
+  closeCaseForm();await refreshData();
+});
+
+/* ============================================================
+   12. 鉴别诊断表单
+============================================================ */
+const diffTitle=document.getElementById('diffTitle');
+const diffCategory=document.getElementById('diffCategory');
+const diffTags=document.getElementById('diffTags');
+const diffNotes=document.getElementById('diffNotes');
+const diffDiseasesArea=document.getElementById('diffDiseasesArea');
+const diffDimensionsArea=document.getElementById('diffDimensionsArea');
+const diffTemplateSel=document.getElementById('diffTemplate');
+
+function resetDiffForm(){
+  diffTitle.value='';diffCategory.value='';diffTags.value='';diffNotes.value='';
+  diffDiseases=['',''];diffDimensions=[{name:'',values:['','']}];
+  editingDiffId=null;
+  diffTemplateSel.value='none';
+  document.getElementById('diffFormTitle').textContent='🔬 新增鉴别诊断对比组';
+  renderDiffDiseases();renderDiffDimensions();
+}
+function openDiffForm(cat){resetDiffForm();if(cat)diffCategory.value=cat;diffModal.classList.add('show');setTimeout(()=>autoResizeAll(diffModal),50);}
+function closeDiffForm(){diffModal.classList.remove('show');}
+
+function renderDiffDiseases(){
+  diffDiseasesArea.innerHTML='';
+  diffDiseases.forEach((d,idx)=>{
+    const div=document.createElement('div');div.className='diff-disease-row';div.dataset.index=idx;
+    div.innerHTML=`<input type="text" placeholder="疾病名称 ${idx+1}" value="${d}" /><button class="remove-row-btn">✕</button>`;
+    diffDiseasesArea.appendChild(div);
+    div.querySelector('input').addEventListener('input',function(){diffDiseases[idx]=this.value;updateDimensionValues();});
+    div.querySelector('.remove-row-btn').addEventListener('click',()=>{if(diffDiseases.length<=2){alert('至少保留2个疾病');return;}diffDiseases.splice(idx,1);diffDimensions.forEach(dim=>dim.values.splice(idx,1));renderDiffDiseases();renderDiffDimensions();});
+  });
+}
+function renderDiffDimensions(){
+  diffDimensionsArea.innerHTML='';
+  diffDimensions.forEach((dim,idx)=>{
+    const div=document.createElement('div');div.className='diff-dimension-row';div.dataset.index=idx;
+    let html=`<input type="text" class="dim-name" placeholder="维度名称" value="${dim.name}" />`;
+    diffDiseases.forEach((d,i)=>{
+      html+=`<input type="text" class="dim-value" placeholder="${d||'疾病'+(i+1)}" value="${dim.values[i]||''}" data-disease-index="${i}" />`;
+    });
+    html+=`<button class="remove-row-btn">✕</button>`;
+    div.innerHTML=html;
+    diffDimensionsArea.appendChild(div);
+    div.querySelector('.dim-name').addEventListener('input',function(){diffDimensions[idx].name=this.value;});
+    div.querySelectorAll('.dim-value').forEach(inp=>inp.addEventListener('input',function(){
+      const di=parseInt(this.dataset.diseaseIndex);
+      diffDimensions[idx].values[di]=this.value;
+    }));
+    div.querySelector('.remove-row-btn').addEventListener('click',()=>{diffDimensions.splice(idx,1);renderDiffDimensions();});
+  });
+}
+function updateDimensionValues(){
+  diffDimensions.forEach(dim=>{
+    while(dim.values.length<diffDiseases.length)dim.values.push('');
+    dim.values=dim.values.slice(0,diffDiseases.length);
+  });
+  renderDiffDimensions();
+}
+document.getElementById('addDiseaseBtn').addEventListener('click',()=>{
+  diffDiseases.push('');
+  diffDimensions.forEach(dim=>dim.values.push(''));
+  renderDiffDiseases();renderDiffDimensions();
+});
+document.getElementById('addDimensionBtn').addEventListener('click',()=>{
+  diffDimensions.push({name:'',values:diffDiseases.map(()=>'')});
+  renderDiffDimensions();
+});
+diffTemplateSel.addEventListener('change',function(){
+  const t=this.value;
+  if(t==='none')return;
+  const dims=DIFF_TEMPLATES[t];
+  if(!dims)return;
+  diffDimensions=dims.map(name=>({name:name,values:diffDiseases.map(()=>'')}));
+  renderDiffDimensions();
+});
+document.getElementById('saveDiffBtn').addEventListener('click',async()=>{
+  const title=diffTitle.value.trim(),category=diffCategory.value.trim(),tagsRaw=diffTags.value.trim(),notes=diffNotes.value.trim();
+  if(!title||!category){alert('请填写标题和分类！');return;}
+  if(diffDiseases.filter(d=>d.trim()).length<2){alert('至少需要2个疾病参与对比');return;}
+  const tags=tagsRaw?tagsRaw.split(',').map(s=>s.trim()).filter(s=>s):[];
+  const now=new Date().toISOString();
+  const data={title,category,tags,notes,diseases:diffDiseases.filter(d=>d.trim()),dimensions:diffDimensions.filter(d=>d.name.trim()).map(d=>({name:d.name,values:d.values}))};
+  if(editingDiffId){
+    const old=await dbGetById(editingDiffId);if(!old)return;
+    await dbUpdate({...old,...data,updatedAt:now});
+  }else{
+    await dbAdd({id:Date.now().toString(36)+Math.random().toString(36).substr(2,6),type:'comparison',...data,createdAt:now,updatedAt:now});
+  }
+  closeDiffForm();await refreshData();
+});
+
+/* ============================================================
+   13. 文件上传
+============================================================ */
+function openFileModal(){
+  document.getElementById('fileName').value='';
+  document.getElementById('fileCategory').value='';
+  document.getElementById('fileTags').value='';
+  document.getElementById('fileNotes').value='';
+  document.getElementById('anyFileInput').value='';
+  document.getElementById('anyFilePreview').textContent='';
+  document.querySelector('#fileModal h2').textContent='📁 上传文件';
+  delete fileModal.dataset.editingId;
+  currentFileData=null;
+  fileModal.classList.add('show');
+  setTimeout(()=>autoResizeAll(fileModal),50);
+}
+document.getElementById('closeFileBtn').addEventListener('click',()=>fileModal.classList.remove('show'));
+fileModal.addEventListener('click',e=>{if(e.target===fileModal)fileModal.classList.remove('show');});
+
+document.getElementById('anyFileInput').addEventListener('change',function(){
+  const f=this.files[0];
+  if(!f)return;
+  if(f.size>15*1024*1024){alert(`文件「${f.name}」超过 15MB，会严重影响性能。建议压缩或拆分。`);this.value='';return;}
+  const r=new FileReader();
+  r.onload=ev=>{
+    currentFileData={name:f.name,size:f.size,type:f.type,data:ev.target.result};
+    document.getElementById('anyFilePreview').textContent=`✅ 已选择：${f.name}（${formatSize(f.size)}）`;
+    if(!document.getElementById('fileName').value){
+      document.getElementById('fileName').value=f.name;
+    }
+  };
+  r.readAsDataURL(f);
+});
+
+document.getElementById('saveFileBtn').addEventListener('click',async()=>{
+  if(!currentFileData){alert('请先选择文件');return;}
+  const title=document.getElementById('fileName').value.trim()||currentFileData.name;
+  const category=document.getElementById('fileCategory').value.trim();
+  const tagsRaw=document.getElementById('fileTags').value.trim();
+  const notes=document.getElementById('fileNotes').value.trim();
+  const tags=tagsRaw?tagsRaw.split(',').map(s=>s.trim()).filter(s=>s):[];
+  const now=new Date().toISOString();
+  
+  if(fileModal.dataset.editingId){
+    const old=await dbGetById(fileModal.dataset.editingId);
+    if(old){
+      await dbUpdate({...old,title,category,tags,notes,fileName:currentFileData.name,fileSize:currentFileData.size,fileType:currentFileData.type,data:currentFileData.data,updatedAt:now});
+    }
+    delete fileModal.dataset.editingId;
+  }else{
+    await dbAdd({
+      id:Date.now().toString(36)+Math.random().toString(36).substr(2,6),
+      type:'file',
+      title,category,tags,notes,
+      fileName:currentFileData.name,
+      fileSize:currentFileData.size,
+      fileType:currentFileData.type,
+      data:currentFileData.data,
+      createdAt:now,updatedAt:now
+    });
+  }
+  fileModal.classList.remove('show');
+  await refreshData();
+});
+
+/* ============================================================
+   14. 粘贴文本
+============================================================ */
+function openPasteModal(){
+  document.getElementById('pasteTextArea').value='';
+  document.getElementById('parsePreview').classList.remove('show');
+  document.getElementById('parsePreview').innerHTML='';
+  pasteModal.classList.add('show');
+  setTimeout(()=>autoResizeAll(pasteModal),50);
+}
+document.getElementById('closePasteBtn').addEventListener('click',()=>pasteModal.classList.remove('show'));
+pasteModal.addEventListener('click',e=>{if(e.target===pasteModal)pasteModal.classList.remove('show');});
+
+function parseTextToKnowledge(text){
+  const lines=text.split('\n').map(l=>l.replace(/\s+$/,''));
+  let title='',summary='',detailLines=[],inDetail=false;
+  for(let i=0;i<lines.length;i++){
+    const raw=lines[i];
+    const trimmed=raw.trim();
+    if(!trimmed){if(inDetail)detailLines.push('');continue;}
+    let m=trimmed.match(/^[#\s]*标题[:：]\s*(.+)$/);
+    if(m){title=m[1];continue;}
+    m=trimmed.match(/^#+\s+(.+)$/);
+    if(m&&!title&&!inDetail){title=m[1];continue;}
+    m=trimmed.match(/^(定义|摘要|简介)[:：]\s*(.+)$/);
+    if(m){summary=m[2];continue;}
+    m=trimmed.match(/^(详细内容|详情|正文|内容)[:：]\s*(.*)$/);
+    if(m){if(m[2])detailLines.push(m[2]);inDetail=true;continue;}
+    if(!title&&!inDetail&&trimmed.length<=60){title=trimmed;continue;}
+    inDetail=true;detailLines.push(raw);
+  }
+  if(!title&&lines[0])title=lines[0].trim();
+  const detail=detailLines.join('\n').trim();
+  return {title:title||'未命名知识点',summary:summary,detail:detail||(lines.length>1?lines.slice(1).join('\n').trim():'')};
+}
+
+document.getElementById('parsePasteBtn').addEventListener('click',function(){
+  const text=document.getElementById('pasteTextArea').value;
+  if(!text.trim()){alert('请先粘贴内容');return;}
+  const parsed=parseTextToKnowledge(text);
+  const preview=document.getElementById('parsePreview');
+  preview.innerHTML=`
+    <div class="row"><strong>标题：</strong>${parsed.title||'（空）'}</div>
+    <div class="row"><strong>定义：</strong>${parsed.summary||'（空）'}</div>
+    <div class="row"><strong>详细内容：</strong>${parsed.detail?'<br>'+parsed.detail.replace(/\n/g,'<br>'):'（空）'}</div>
+    <div class="row" style="margin-top:10px;color:#64748b;">✔ 已填充到知识点表单，请检查并保存。</div>
+  `;
+  preview.classList.add('show');
+  resetForm();
+  inputTitle.value=parsed.title;
+  inputSummary.value=parsed.summary;
+  inputDetail.value=parsed.detail;
+  if(viewMode==='category'&&currentFilterCat!=='all')inputCategory.value=currentFilterCat;
+  setTimeout(()=>{
+    pasteModal.classList.remove('show');
+    formModal.classList.add('show');
+    setTimeout(()=>autoResizeAll(formModal),50);
+  },400);
+});
+
+/* ============================================================
+   15. 分类、删除、备份、事件
+============================================================ */
+document.getElementById('addCategoryBtn').addEventListener('click',()=>{document.getElementById('newCategoryInput').value='';newCategoryModal.classList.add('show');});
+document.getElementById('closeNewCategoryBtn').addEventListener('click',()=>newCategoryModal.classList.remove('show'));
+document.getElementById('saveNewCategoryBtn').addEventListener('click',()=>{
+  const n=document.getElementById('newCategoryInput').value.trim();
+  if(!n){alert('请输入分类名称');return;}
+  const all=getAllCategories(allEntries);
+  if(all.includes(n)){alert('该分类已存在！');return;}
+  const c=loadCustomCategories();c.push(n);saveCustomCategories(c);
+  newCategoryModal.classList.remove('show');refreshData();
+});
+newCategoryModal.addEventListener('click',e=>{if(e.target===newCategoryModal)newCategoryModal.classList.remove('show');});
+
+document.getElementById('detailDeleteBtn').addEventListener('click',async()=>{
+  if(!currentDetailId)return;
+  if(confirm('确定永久删除吗？')){await dbDelete(currentDetailId);closeDetail();await refreshData();}
+});
+
+document.getElementById('exportBtn').addEventListener('click',()=>downloadBackup());
+document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change',async function(){
+  const file=this.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try{
+      const imported=JSON.parse(ev.target.result);
+      if(!Array.isArray(imported))throw new Error('格式错误');
+      const all=await dbGetAll();for(let i of all)await dbDelete(i.id);
+      for(let item of imported){if(!item.id)item.id=Date.now().toString(36)+Math.random().toString(36).substr(2,6);if(!item.createdAt)item.createdAt=new Date().toISOString();if(!item.updatedAt)item.updatedAt=item.createdAt;if(!item.type)item.type='knowledge';await dbAdd(item);}
+      alert('✅ 导入成功！共导入 '+imported.length+' 条数据。');await refreshData();
+      if(fileHandle)await writeToFile(false);
+    }catch(e){alert('❌ 导入失败：文件格式不正确。');}
+  };
+  reader.readAsText(file);this.value='';
+});
+
+categoryList.addEventListener('click',function(e){
+  const li=e.target.closest('li');if(!li)return;
+  if(e.target.closest('.action-btns'))return;
+  const cat=li.dataset.cat;
+  if(cat==='all'){viewMode='all';currentFilterCat='all';subTypeFilter='all';currentFilterTag=null;}
+  else{viewMode='category';currentFilterCat=cat;subTypeFilter='all';currentFilterTag=null;}
+  render();
+  if(window.innerWidth<=768)closeMobileSidebar();
+});
+diffEntry.addEventListener('click',()=>{viewMode='differential';currentFilterCat='all';currentFilterTag=null;render();if(window.innerWidth<=768)closeMobileSidebar();});
+fileEntry.addEventListener('click',()=>{viewMode='files';currentFilterCat='all';currentFilterTag=null;render();if(window.innerWidth<=768)closeMobileSidebar();});
+
+tagCloud.addEventListener('click',function(e){
+  const span=e.target.closest('.tag-item');if(!span)return;
+  if(viewMode!=='all'){viewMode='all';currentFilterCat='all';currentFilterTag=span.dataset.tag;subTypeFilter='all';render();return;}
+  const t=span.dataset.tag;
+  if(currentFilterTag===t)currentFilterTag=null;else currentFilterTag=t;
+  render();
+});
+
+document.getElementById('closeFormBtn').addEventListener('click',closeForm);
+formModal.addEventListener('click',e=>{if(e.target===formModal)closeForm();});
+document.getElementById('closeCaseBtn').addEventListener('click',closeCaseForm);
+caseModal.addEventListener('click',e=>{if(e.target===caseModal)closeCaseForm();});
+document.getElementById('closeDiffBtn').addEventListener('click',closeDiffForm);
+diffModal.addEventListener('click',e=>{if(e.target===diffModal)closeDiffForm();});
+document.getElementById('closeDetailBtn').addEventListener('click',closeDetail);
+detailModal.addEventListener('click',e=>{if(e.target===detailModal)closeDetail();});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    closeForm();closeCaseForm();closeDiffForm();closeDetail();
+    newCategoryModal.classList.remove('show');renameModal.classList.remove('show');
+    pasteModal.classList.remove('show');fileModal.classList.remove('show');
+  }
+});
+
+const editBtnInDetail=document.createElement('button');
+editBtnInDetail.textContent='✏️ 编辑';
+editBtnInDetail.style.cssText='background:#e0f2fe;color:#0369a1;border:none;padding:8px 20px;border-radius:40px;font-weight:600;cursor:pointer;margin-right:10px;';
+editBtnInDetail.addEventListener('click',async()=>{
+  if(!currentDetailId)return;
+  const e=await dbGetById(currentDetailId);if(!e)return;
+  const id=currentDetailId;closeDetail();
+  if(e.type==='file'){
+    setTimeout(()=>{
+      openFileModal();
+      document.getElementById('fileName').value=e.title||'';
+      document.getElementById('fileCategory').value=e.category||'';
+      document.getElementById('fileTags').value=e.tags?e.tags.join(', '):'';
+      document.getElementById('fileNotes').value=e.notes||'';
+      document.getElementById('anyFilePreview').textContent='（保留原文件，如需替换请重新选择）';
+      currentFileData={name:e.fileName,size:e.fileSize,type:e.fileType,data:e.data};
+      document.querySelector('#fileModal h2').textContent='✏️ 编辑文件';
+      fileModal.dataset.editingId=id;
+    },200);
+    return;
+  }
+  if(e.type==='case')setTimeout(()=>openEditCaseForm(id),200);
+  else if(e.type==='comparison')setTimeout(()=>{
+    resetDiffForm();editingDiffId=id;
+    document.getElementById('diffFormTitle').textContent='✏️ 编辑鉴别诊断对比组';
+    diffTitle.value=e.title||'';diffCategory.value=e.category||'';diffTags.value=e.tags?e.tags.join(', '):'';diffNotes.value=e.notes||'';
+    diffDiseases=e.diseases?[...e.diseases]:['',''];
+    diffDimensions=e.dimensions?e.dimensions.map(d=>({name:d.name,values:[...d.values]})):[{name:'',values:['','']}];
+    diffTemplateSel.value='none';
+    renderDiffDiseases();renderDiffDimensions();diffModal.classList.add('show');
+    setTimeout(()=>autoResizeAll(diffModal),50);
+  },200);
+  else setTimeout(()=>openEditForm(id),200);
+});
+const delParent=document.getElementById('detailDeleteBtn').parentNode;
+delParent.insertBefore(editBtnInDetail,document.getElementById('detailDeleteBtn'));
+
+/* ============================================================
+   16. 初始化
+============================================================ */
+async function refreshData(){
+  allEntries=await dbGetAll();
+  let needSave=false;
+  allEntries.forEach(e=>{
+    if(!e.type){e.type='knowledge';needSave=true;}
+    if(e.type==='case'&&!e.caseData){e.caseData={chiefComplaint:'',inquiry:'',examination:'',diagnosisThinking:'',referenceAnswer:'',extraFields:[]};needSave=true;}
+  });
+  if(needSave){for(let e of allEntries)await dbUpdate(e);}
+  render();
+  scheduleAutoSave();
+}
+async function init(){
+  db=await openDB();
+  const existing=await dbGetAll();
+  if(existing.length===0){
+    const samples=[
+      {id:'demo1',type:'knowledge',title:'龋病（蛀牙）',category:'牙体牙髓学',tags:['细菌感染','充填修复'],summary:'细菌感染导致的牙体硬组织破坏',detail:'**病因**：变形链球菌。\n**分类**：浅龋、中龋、深龋。\n**治疗**：复合树脂充填。',images:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()},
+      {id:'demo2',type:'knowledge',title:'急性牙髓炎',category:'牙体牙髓学',tags:['冷热痛','根管治疗'],summary:'牙髓急性炎症，剧烈自发痛，夜间加重',detail:'**症状**：放射性痛，不能定位。\n**治疗**：开髓减压，根管治疗。',images:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()},
+      {id:'case1',type:'case',title:'下颌第一磨牙慢性根尖周炎',category:'牙体牙髓学',tags:['根尖周炎','X线透射区'],summary:'主诉：左下后牙咬合不适1月',detail:'',images:[],caseData:{chiefComplaint:'左下后牙咬合不适1月，偶有牙龈瘘管',inquiry:'患者1月前感左下后牙咀嚼时不适，无自发痛，冷热刺激无加重，有夜间磨牙史',examination:'叩诊（+），根尖区压痛，X线显示根尖区椭圆形透射影，边界清晰',diagnosisThinking:'慢性根尖周炎，需鉴别根尖囊肿，考虑既往有龋坏史',referenceAnswer:'根管治疗后行根尖囊肿刮治术，定期复查'},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()},
+      {id:'diff1',type:'comparison',title:'急性牙髓炎 vs 急性根尖周炎',category:'牙体牙髓学',tags:['鉴别诊断','疼痛'],diseases:['急性牙髓炎','急性根尖周炎'],dimensions:[{name:'疼痛性质',values:['自发性阵发痛、夜间加重','持续性钝痛、咬合痛']},{name:'疼痛定位',values:['不能定位、放散痛','能定位']},{name:'冷热刺激',values:['激发痛，刺激去除后持续','无反应']},{name:'叩诊',values:['(-)','(+)']},{name:'牙髓活力',values:['敏感或迟钝','无反应']}],notes:'关键鉴别点：急性牙髓炎有自发性痛和冷热刺激痛，不能定位；急性根尖周炎咬合痛明显，能定位，牙髓多无活力。',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}
+    ];
+    for(let s of samples)await dbAdd(s);
+  }
+  await refreshData();
+  console.log('🦷 系统启动成功！搜索框已修复！');
+}
+init();
+</script>
+</body>
+</html>
