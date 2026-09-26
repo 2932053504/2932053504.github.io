@@ -10,12 +10,14 @@ self.addEventListener('activate',function(e){
 self.addEventListener('fetch',function(e){
   if(e.request.method!=='GET')return;
   e.respondWith(
-    caches.match(e.request).then(function(r){
-      return r||fetch(e.request).then(function(res){
-        var copy=res.clone();
-        caches.open(CACHE).then(function(c){c.put(e.request,copy);});
-        return res;
+    fetch(e.request).then(function(res){
+      var copy=res.clone();
+      caches.open(CACHE).then(function(c){c.put(e.request,copy);});
+      return res;
+    }).catch(function(){
+      return caches.match(e.request).then(function(r){
+        return r||caches.match('./index.html');
       });
-    }).catch(function(){return caches.match('./index.html');})
+    })
   );
 });
