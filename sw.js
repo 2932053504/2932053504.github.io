@@ -1,4 +1,4 @@
-var CACHE='dentalkb-v1';
+var CACHE='dentalkb-v2';
 self.addEventListener('install',function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(['./','./index.html']);}));
 });
